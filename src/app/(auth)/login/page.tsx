@@ -15,6 +15,12 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
+// #region agent log
+function debugLog(location: string, message: string, data: Record<string, unknown>, hypothesisId: string) {
+  console.log(`[DEBUG ${hypothesisId}] ${location}: ${message}`, data);
+}
+// #endregion
+
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="text-white text-center py-8">Loading...</div>}>
@@ -36,7 +42,29 @@ function LoginForm() {
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    const supabase = createClient();
+    
+    // #region agent log
+    debugLog('login:handleEmailLogin:start', 'Starting login', {}, 'H2,H5');
+    // #endregion
+
+    let supabase;
+    try {
+      supabase = createClient();
+      // #region agent log
+      debugLog('login:handleEmailLogin:clientCreated', 'Client created in login', { 
+        clientType: typeof supabase, 
+        hasAuth: !!(supabase as any)?.auth,
+        authType: typeof (supabase as any)?.auth 
+      }, 'H2,H5');
+      // #endregion
+    } catch (clientError) {
+      // #region agent log
+      debugLog('login:handleEmailLogin:clientError', 'Failed to create client', { error: String(clientError) }, 'H2,H5');
+      // #endregion
+      toast.error('Failed to initialize authentication');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -53,6 +81,9 @@ function LoginForm() {
       router.refresh(); // Refresh to update server state with new session
       router.push(redirect);
     } catch (err) {
+      // #region agent log
+      debugLog('login:handleEmailLogin:authError', 'Auth error', { error: String(err) }, 'H2,H5');
+      // #endregion
       toast.error('An unexpected error occurred');
       console.error(err);
     } finally {
