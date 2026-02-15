@@ -6,6 +6,7 @@ import { rewriteArticle } from '@/lib/ai/gemini';
 import { computeSimHash, isDuplicate } from '@/lib/pipeline/simhash';
 import { categorizeArticle } from '@/lib/pipeline/categorize';
 import { insertBacklink } from '@/lib/pipeline/backlink';
+import { downloadAndStoreImage } from '@/lib/pipeline/download-image';
 import { createNotification, getSiteOwnerUserId } from '@/lib/notifications';
 import slugify from 'slugify';
 
@@ -165,6 +166,16 @@ export async function POST(request: NextRequest) {
         const socialCopy = rewritten.socialCopy || '';
         const socialHashtags = rewritten.socialHashtags || [];
 
+        // Download and store featured image locally
+        let storedImageUrl: string | null = null;
+        if (featuredImageUrl) {
+          try {
+            storedImageUrl = await downloadAndStoreImage(featuredImageUrl, siteId, article.id);
+          } catch (imgError) {
+            console.error(`Error downloading image: ${imgError instanceof Error ? imgError.message : String(imgError)}`);
+          }
+        }
+
         // Backlinks
         let contentWithBacklink = rewritten.content;
         let hasBacklink = false;
@@ -190,6 +201,7 @@ export async function POST(request: NextRequest) {
           tags: rewritten.tags,
           category_id: categoryId,
           featured_image_url: featuredImageUrl,
+          featured_image_stored: storedImageUrl,
           status: 'published',
           published_at: new Date().toISOString(),
           social_copy: socialCopy,

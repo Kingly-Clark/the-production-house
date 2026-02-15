@@ -26,7 +26,7 @@ export function generateArticleSchema(article: Article, site: Site, baseUrl: str
     '@type': 'NewsArticle',
     headline: article.title || article.original_title,
     description: article.excerpt || article.meta_description || '',
-    image: article.featured_image_url ? [article.featured_image_url] : undefined,
+    image: (article.featured_image_stored || article.featured_image_url) ? [article.featured_image_stored || article.featured_image_url] : undefined,
     datePublished: publishedDate,
     dateModified: modifiedDate,
     author: article.original_author

@@ -60,7 +60,7 @@ export async function GET(
       <guid isPermaLink="false">${escapeXml(article.id)}</guid>
       ${article.published_at ? `<pubDate>${new Date(article.published_at).toUTCString()}</pubDate>` : ''}
       ${article.original_author ? `<author>${escapeXml(article.original_author)}</author>` : ''}
-      ${article.featured_image_url ? `<image><url>${escapeXml(article.featured_image_url)}</url><title>${escapeXml(article.title || article.original_title)}</title><link>${escapeXml(siteUrl)}</link></image>` : ''}
+      ${(article.featured_image_stored || article.featured_image_url) ? `<image><url>${escapeXml((article.featured_image_stored || article.featured_image_url)!)}</url><title>${escapeXml(article.title || article.original_title)}</title><link>${escapeXml(siteUrl)}</link></image>` : ''}
       <content:encoded><![CDATA[${article.content || ''}]]></content:encoded>
     </item>
     `

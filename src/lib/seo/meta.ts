@@ -48,7 +48,7 @@ export function generateArticleMeta(
 ): Metadata {
   const title = article.title || article.original_title;
   const description = article.meta_description || article.excerpt || '';
-  const image = article.featured_image_url || settings.og_image_url;
+  const image = article.featured_image_stored || article.featured_image_url || settings.og_image_url;
   const publishedDate = article.published_at ? new Date(article.published_at) : undefined;
 
   return {
