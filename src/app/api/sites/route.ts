@@ -1,26 +1,52 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getCurrentUser } from '@/lib/auth/helpers';
 import { NextRequest, NextResponse } from 'next/server';
-import { Database, Site, Organization } from '@/types/database';
+import { Organization, User } from '@/types/database';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// Helper to get or create organization for user
-async function getOrCreateOrganization(userId: string, userEmail: string): Promise<Organization> {
+// Helper to get or create user record in users table
+async function getOrCreateUser(authUserId: string, authUserEmail: string): Promise<User> {
   const adminClient = createAdminClient();
   
-  // First check if user already has an organization
-  const { data: user } = await adminClient
+  // Check if user exists in users table
+  const { data: existingUser, error: fetchError } = await adminClient
     .from('users')
-    .select('organization_id')
-    .eq('id', userId)
+    .select('*')
+    .eq('id', authUserId)
     .single();
 
-  if (user?.organization_id) {
-    // User has an org, fetch it
-    const { data: org, error } = await adminClient
+  if (existingUser) {
+    return existingUser;
+  }
+
+  // User doesn't exist, create them
+  const { data: newUser, error: createError } = await adminClient
+    .from('users')
+    .insert({
+      id: authUserId,
+      email: authUserEmail,
+      role: 'user',
+    })
+    .select()
+    .single();
+
+  if (createError || !newUser) {
+    console.error('Error creating user:', createError);
+    throw new Error('Failed to create user record');
+  }
+
+  return newUser;
+}
+
+// Helper to get or create organization for user
+async function getOrCreateOrganization(user: User, userEmail: string): Promise<Organization> {
+  const adminClient = createAdminClient();
+  
+  // Check if user already has an organization
+  if (user.organization_id) {
+    const { data: org } = await adminClient
       .from('organizations')
       .select('*')
       .eq('id', user.organization_id)
@@ -41,6 +67,7 @@ async function getOrCreateOrganization(userId: string, userEmail: string): Promi
     .single();
 
   if (orgError || !newOrg) {
+    console.error('Error creating organization:', orgError);
     throw new Error('Failed to create organization');
   }
 
@@ -48,7 +75,7 @@ async function getOrCreateOrganization(userId: string, userEmail: string): Promi
   await adminClient
     .from('users')
     .update({ organization_id: newOrg.id })
-    .eq('id', userId);
+    .eq('id', user.id);
 
   return newOrg;
 }
@@ -57,17 +84,21 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get current user
-    const user = await getCurrentUser(supabase);
-    if (!user) {
+    // Get authenticated user from Supabase Auth
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !authUser) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    // Get or create user record in users table
+    const user = await getOrCreateUser(authUser.id, authUser.email || '');
+
     // Get or create organization
-    const organization = await getOrCreateOrganization(user.id, user.email);
+    const organization = await getOrCreateOrganization(user, authUser.email || '');
 
     // Fetch all sites for this organization
     const { data: sites, error } = await supabase
@@ -95,17 +126,21 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get current user
-    const user = await getCurrentUser(supabase);
-    if (!user) {
+    // Get authenticated user from Supabase Auth
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !authUser) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    // Get or create user record in users table
+    const user = await getOrCreateUser(authUser.id, authUser.email || '');
+
     // Get or create organization
-    const organization = await getOrCreateOrganization(user.id, user.email);
+    const organization = await getOrCreateOrganization(user, authUser.email || '');
 
     const body = await request.json();
     const { name, slug, description, header_text, template_id, tone_of_voice } = body;
