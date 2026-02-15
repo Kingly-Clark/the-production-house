@@ -166,13 +166,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if slug already exists and generate unique one if needed
+    let finalSlug = slug;
+    let slugExists = true;
+    let attempts = 0;
+    
+    while (slugExists && attempts < 10) {
+      const { data: existingSite } = await adminClient
+        .from('sites')
+        .select('id')
+        .eq('slug', finalSlug)
+        .single();
+      
+      if (existingSite) {
+        // Append random suffix to make it unique
+        const suffix = Math.random().toString(36).substring(2, 6);
+        finalSlug = `${slug}-${suffix}`;
+        attempts++;
+      } else {
+        slugExists = false;
+      }
+    }
+
+    if (slugExists) {
+      return NextResponse.json(
+        { error: 'Could not generate unique slug. Please try a different name.' },
+        { status: 400 }
+      );
+    }
+
     // Create the site (use admin client to bypass RLS)
     const { data: site, error: siteError } = await adminClient
       .from('sites')
       .insert({
         organization_id: organization.id,
         name,
-        slug,
+        slug: finalSlug,
         description: description || null,
         header_text: header_text || null,
         template_id: template_id || 'classic',
