@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { extractArticleContent } from '@/lib/pipeline/extract-content';
 import { rewriteArticle } from '@/lib/ai/gemini';
-import { filterContent } from '@/lib/pipeline/filter';
 import { computeSimHash, isDuplicate } from '@/lib/pipeline/simhash';
 import { categorizeArticle } from '@/lib/pipeline/categorize';
 import { generateSocialCopy } from '@/lib/pipeline/social-copy';
@@ -105,13 +104,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Filter check
-        const filterResult = await filterContent(article.original_title, extractedContent || '');
-        if (filterResult.shouldFilter) {
-          await adminClient.from('articles').update({ status: 'filtered' }).eq('id', article.id);
-          results.push({ id: article.id, status: 'filtered' });
-          continue;
-        }
+        // Skip filter — user explicitly selected this article for rewriting
 
         // Duplicate check
         const contentHash = computeSimHash(extractedContent || article.original_title);
