@@ -27,18 +27,31 @@ const cookieStorage = {
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === key) {
-        return decodeURIComponent(value);
+        const decoded = decodeURIComponent(value);
+        // #region agent log
+        debugLog('cookieStorage:getItem', 'Retrieved cookie', { key, hasValue: !!decoded, valueLength: decoded?.length }, 'H6-fix');
+        // #endregion
+        return decoded;
       }
     }
+    // #region agent log
+    debugLog('cookieStorage:getItem', 'Cookie not found', { key }, 'H6-fix');
+    // #endregion
     return null;
   },
   setItem: (key: string, value: string): void => {
     if (typeof document === 'undefined') return;
+    // #region agent log
+    debugLog('cookieStorage:setItem', 'Setting cookie', { key, valueLength: value?.length }, 'H6-fix');
+    // #endregion
     // Set cookie with SameSite=Lax for security, max age 1 year
     document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
   },
   removeItem: (key: string): void => {
     if (typeof document === 'undefined') return;
+    // #region agent log
+    debugLog('cookieStorage:removeItem', 'Removing cookie', { key }, 'H6-fix');
+    // #endregion
     document.cookie = `${key}=; path=/; max-age=0`;
   },
 };
