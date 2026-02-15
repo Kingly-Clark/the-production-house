@@ -1,11 +1,23 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.GOOGLE_AI_API_KEY;
-if (!apiKey) {
-  throw new Error('GOOGLE_AI_API_KEY environment variable is required');
+let _client: GoogleGenerativeAI | null = null;
+
+function getClient(): GoogleGenerativeAI {
+  if (!_client) {
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_AI_API_KEY environment variable is required');
+    }
+    _client = new GoogleGenerativeAI(apiKey);
+  }
+  return _client;
 }
 
-const client = new GoogleGenerativeAI(apiKey);
+const client = new Proxy({} as GoogleGenerativeAI, {
+  get(_, prop) {
+    return (getClient() as any)[prop];
+  },
+});
 
 interface RewriteInput {
   title: string;

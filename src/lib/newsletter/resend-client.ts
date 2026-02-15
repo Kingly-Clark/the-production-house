@@ -4,11 +4,23 @@
 
 import { Resend } from 'resend';
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error('RESEND_API_KEY environment variable is required');
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY environment variable is required');
+    }
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Proxy({} as Resend, {
+  get(_, prop) {
+    return (getResend() as any)[prop];
+  },
+});
 
 export interface SendEmailInput {
   to: string;
