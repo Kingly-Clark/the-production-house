@@ -2,13 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Site } from '@/types/database';
-import { Loader2, FileText, Users } from 'lucide-react';
+import { Loader2, ExternalLink, Trash2, Settings } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SiteCardProps {
   site: Site;
+  onDeleted?: (siteId: string) => void;
 }
 
 interface SiteStats {
@@ -22,10 +26,12 @@ interface SiteStats {
   subscriber_count: number;
 }
 
-export function SiteCard({ site }: SiteCardProps) {
+export function SiteCard({ site, onDeleted }: SiteCardProps) {
   const router = useRouter();
   const [stats, setStats] = useState<SiteStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -45,8 +51,33 @@ export function SiteCard({ site }: SiteCardProps) {
     fetchStats();
   }, [site.id]);
 
-  const handleClick = () => {
+  const handleManage = () => {
     router.push(`/dashboard/sites/${site.id}`);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`/api/sites/${site.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        toast.success(`"${site.name}" has been deleted`);
+        onDeleted?.(site.id);
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to delete site');
+      }
+    } catch (err) {
+      console.error('Error deleting site:', err);
+      toast.error('Failed to delete site');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const templateColors: Record<string, string> = {
@@ -58,16 +89,65 @@ export function SiteCard({ site }: SiteCardProps) {
   };
 
   return (
-    <Card
-      onClick={handleClick}
-      className="bg-slate-900 border-slate-800 overflow-hidden cursor-pointer hover:border-blue-500 transition-colors"
-    >
+    <Card className="bg-slate-900 border-slate-800 overflow-hidden hover:border-slate-700 transition-colors group relative">
       {/* Template preview header */}
       <div
         className={`h-24 bg-gradient-to-r ${
           templateColors[site.template_id]
         } to-slate-900 relative`}
-      />
+      >
+        {/* Delete button in corner */}
+        {!showDeleteConfirm && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDeleteConfirm(true);
+            }}
+            className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/60 text-slate-400 hover:text-red-400 hover:bg-red-950/80 opacity-0 group-hover:opacity-100 transition-all"
+            title="Delete site"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Delete confirmation overlay */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 z-10 bg-slate-950/90 flex flex-col items-center justify-center gap-3 p-6 rounded-xl">
+          <p className="text-red-300 text-sm text-center font-medium">
+            Delete &quot;{site.name}&quot;?
+          </p>
+          <p className="text-slate-400 text-xs text-center">
+            This action cannot be undone.
+          </p>
+          <div className="flex gap-2 mt-1">
+            <Button
+              onClick={handleDelete}
+              disabled={deleting}
+              size="sm"
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Delete'
+              )}
+            </Button>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteConfirm(false);
+              }}
+              disabled={deleting}
+              size="sm"
+              variant="outline"
+              className="border-slate-700 text-slate-300"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-6 space-y-4">
@@ -126,6 +206,34 @@ export function SiteCard({ site }: SiteCardProps) {
             </div>
           </div>
         ) : null}
+
+        {/* Action buttons */}
+        <div className="flex gap-2 pt-3 border-t border-slate-800">
+          <Link
+            href={`/s/${site.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full border-slate-700 text-slate-300 hover:text-white"
+            >
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              View Site
+            </Button>
+          </Link>
+          <Button
+            onClick={handleManage}
+            size="sm"
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+          >
+            <Settings className="w-3.5 h-3.5 mr-1.5" />
+            Manage
+          </Button>
+        </div>
       </div>
     </Card>
   );

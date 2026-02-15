@@ -139,7 +139,13 @@ export default function DashboardOverview() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sites.map((site) => (
-              <SiteCard key={site.id} site={site} />
+              <SiteCard
+                key={site.id}
+                site={site}
+                onDeleted={(deletedId) =>
+                  setSites((prev) => prev.filter((s) => s.id !== deletedId))
+                }
+              />
             ))}
             {/* Create new site card */}
             <Card
