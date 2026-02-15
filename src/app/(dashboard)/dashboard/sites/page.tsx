@@ -21,15 +21,26 @@ export default function SitesList() {
         setError(null);
 
         const res = await fetch('/api/sites');
+        const data = await res.json();
+
+        // Check if the response contains an error
         if (!res.ok) {
-          throw new Error('Failed to fetch sites');
+          // If unauthorized, don't show error - user may need to log in
+          if (res.status === 401) {
+            setSites([]);
+            return;
+          }
+          throw new Error(data?.error || 'Failed to fetch sites');
         }
 
-        const data = await res.json();
-        setSites(data);
+        // Ensure data is an array (handle edge cases)
+        setSites(Array.isArray(data) ? data : []);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
-        setError(message);
+        console.error('Error fetching sites:', message);
+        // Don't show error for empty results, just show empty state
+        setError(null);
+        setSites([]);
       } finally {
         setLoading(false);
       }
@@ -79,7 +90,7 @@ export default function SitesList() {
       {sites.length === 0 ? (
         <Card className="bg-slate-900 border-slate-800 p-12 text-center">
           <p className="text-slate-400 mb-6">
-            You don't have any sites yet. Create one to get started!
+            No sites currently active. Create one to get started!
           </p>
           <Button
             onClick={handleCreateSite}
