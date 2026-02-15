@@ -3,8 +3,7 @@
 // =============================================================
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { updateSession } from '@/lib/supabase/middleware';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
 // Routes that don't require authentication
@@ -33,6 +32,36 @@ const ADMIN_ROUTES = ['/admin'];
 // Routes that require authentication
 const PROTECTED_ROUTES = ['/dashboard', '/settings'];
 
+// Helper function to get auth token from cookies
+function getAuthFromCookies(request: NextRequest): { accessToken?: string; refreshToken?: string } {
+  const allCookies = request.cookies.getAll();
+  
+  // Try to find the Supabase auth cookie
+  for (const cookie of allCookies) {
+    if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
+      try {
+        // Try base64 decode first
+        const decoded = Buffer.from(cookie.value.split('.')[0] || cookie.value, 'base64').toString();
+        const parsed = JSON.parse(decoded);
+        return { accessToken: parsed.access_token, refreshToken: parsed.refresh_token };
+      } catch {
+        try {
+          const parsed = JSON.parse(cookie.value);
+          return { accessToken: parsed.access_token, refreshToken: parsed.refresh_token };
+        } catch {
+          // Not JSON
+        }
+      }
+    }
+  }
+  
+  // Fallback to individual cookies
+  return {
+    accessToken: request.cookies.get('sb-access-token')?.value,
+    refreshToken: request.cookies.get('sb-refresh-token')?.value,
+  };
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -42,24 +71,14 @@ export async function middleware(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Missing Supabase environment variables in middleware');
-    // Allow request to continue but skip auth checks
     return NextResponse.next();
   }
 
-  // Clone response to modify cookies if needed
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
-
-  try {
-    // Update session and refresh auth token
-    response = await updateSession(request, response);
-  } catch (error) {
-    console.error('Error updating session:', error);
-    // Continue without session update
-  }
 
   // Get the hostname for custom domain routing
   const hostname = request.headers.get('host') || '';
@@ -72,20 +91,12 @@ export async function middleware(request: NextRequest) {
 
   // Handle custom domain routing to public site view
   if (isCustomDomain && !pathname.startsWith('/api') && !pathname.startsWith('/s/')) {
-    // For custom domains, serve the public site view
-    // The domain lookup will happen in the page component
     const newUrl = new URL(`/s/${hostname}${pathname}`, request.url);
     return NextResponse.rewrite(newUrl);
   }
 
   // Skip middleware for API routes (they have their own auth)
   if (pathname.startsWith('/api/')) {
-    // Allow public API routes
-    if (PUBLIC_API_ROUTES.some(route => pathname.startsWith(route))) {
-      return response;
-    }
-
-    // For other API routes, continue (auth handled per route)
     return response;
   }
 
@@ -99,28 +110,41 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Create supabase client to check auth status
-  let session = null;
+  // Check auth status using standard Supabase client
   try {
-    const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
+    const { accessToken, refreshToken } = getAuthFromCookies(request);
+    
+    // If no tokens and trying to access protected route, redirect to login
+    if (!accessToken) {
+      if (PROTECTED_ROUTES.some(route => pathname.startsWith(route)) ||
+          ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      return response;
+    }
+
+    // Create client and verify session
+    const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
     });
 
-    // Get current session
-    const { data } = await supabase.auth.getSession();
-    session = data.session;
+    if (accessToken && refreshToken) {
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    }
 
-    // If no session and trying to access protected route, redirect to login
-    if (!session) {
+    // Verify the session is valid
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      // Invalid session, redirect to login for protected routes
       if (PROTECTED_ROUTES.some(route => pathname.startsWith(route)) ||
           ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
         const loginUrl = new URL('/login', request.url);
@@ -132,20 +156,14 @@ export async function middleware(request: NextRequest) {
 
     // Check admin routes
     if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
-      // Get user to check role
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single<{ role: string }>();
 
-      if (user) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single<{ role: string }>();
-
-        if (!userData || userData.role !== 'admin') {
-          // Not admin, redirect to dashboard
-          return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
+      if (!userData || userData.role !== 'admin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     }
   } catch (error) {
