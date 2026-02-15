@@ -89,32 +89,32 @@ function SplineBackground() {
 
 function HeroContent() {
   return (
-    <div className="text-left text-white pt-20 sm:pt-24 md:pt-28 px-4 max-w-3xl pointer-events-none">
+    <div className="text-left sm:text-left text-center text-white pt-8 sm:pt-24 md:pt-28 px-4 max-w-3xl pointer-events-none mx-auto sm:mx-0">
       {/* Badge */}
-      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-700/50 mb-6 backdrop-blur-sm pointer-events-auto">
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-700/50 mb-4 sm:mb-6 backdrop-blur-sm pointer-events-auto">
         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         <span className="text-sm text-slate-300">Now accepting early adopters</span>
       </div>
 
       {/* Main headline */}
-      <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
+      <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-3 sm:mb-6 leading-tight tracking-tight">
         Automated Content Sites That Build Your
         <br />
         <TypingText />
       </h1>
 
       {/* Subheading */}
-      <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 opacity-90 max-w-xl leading-relaxed text-slate-300">
+      <p className="text-sm sm:text-base md:text-lg mb-4 sm:mb-8 opacity-90 max-w-xl leading-relaxed text-slate-300 mx-auto sm:mx-0">
         Add your content sources, let our AI rewrite and optimize them, then publish automatically to beautiful sites with
         built-in newsletters, social media posting, and custom domains.
       </p>
 
       {/* CTA Buttons */}
-      <div className="flex pointer-events-auto flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4">
+      <div className="flex pointer-events-auto flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start space-y-3 sm:space-y-0 sm:space-x-4">
         <Link href="/signup">
           <Button
             size="lg"
-            className="bg-gradient-to-r from-blue-600/80 to-purple-600/80 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-full transition duration-300 w-full sm:w-auto border border-blue-500/30 backdrop-blur-sm gap-2"
+            className="bg-gradient-to-r from-blue-600/80 to-purple-600/80 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-full transition duration-300 border border-blue-500/30 backdrop-blur-sm gap-2"
           >
             Get Started Free
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -123,7 +123,7 @@ function HeroContent() {
         <Button
           size="lg"
           variant="outline"
-          className="bg-slate-900/50 border border-slate-600 hover:border-slate-400 text-slate-200 hover:text-white font-medium py-2.5 sm:py-3 px-6 sm:px-8 rounded-full transition duration-300 flex items-center justify-center w-full sm:w-auto backdrop-blur-sm"
+          className="hidden sm:flex bg-slate-900/50 border border-slate-600 hover:border-slate-400 text-slate-200 hover:text-white font-medium py-2.5 sm:py-3 px-6 sm:px-8 rounded-full transition duration-300 items-center justify-center backdrop-blur-sm"
         >
           <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2 fill-current" />
           Watch Demo
@@ -131,14 +131,14 @@ function HeroContent() {
       </div>
 
       {/* Trust indicators */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 text-xs sm:text-sm text-slate-400 pt-6 mt-6 border-t border-slate-700/50">
-        <div className="flex items-center gap-2">
-          <span className="text-green-400">✓</span> No credit card required
+      <div className="flex flex-row flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-1 sm:gap-8 text-xs sm:text-sm text-slate-400 pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-slate-700/50">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="text-green-400">✓</span> No credit card
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-green-400">✓</span> 30-day free trial
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="text-green-400">✓</span> 30-day trial
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <span className="text-green-400">✓</span> Cancel anytime
         </div>
       </div>
