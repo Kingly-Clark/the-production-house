@@ -5,7 +5,7 @@
 
 export type OrganizationStatus = 'active' | 'paused' | 'cancelled' | 'past_due';
 export type SiteStatus = 'active' | 'paused' | 'building' | 'deleted';
-export type ArticleStatus = 'raw' | 'rewriting' | 'pending' | 'published' | 'unpublished' | 'failed' | 'duplicate' | 'filtered';
+export type ArticleStatus = 'raw' | 'rewriting' | 'pending' | 'published' | 'unpublished' | 'failed' | 'duplicate' | 'filtered' | 'deleted';
 export type TemplateId = 'classic' | 'magazine' | 'minimal' | 'bold' | 'tech';
 export type ToneOfVoice = 'professional' | 'casual' | 'authoritative' | 'friendly' | 'witty' | 'formal' | 'conversational';
 export type SourceType = 'rss' | 'sitemap';

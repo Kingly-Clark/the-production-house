@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
@@ -13,7 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Article } from '@/types/database';
-import { Eye } from 'lucide-react';
+import { Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ArticleTableProps {
   articles: Article[];
@@ -21,6 +24,7 @@ interface ArticleTableProps {
   selectable?: boolean;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
+  onArticleDeleted?: (articleId: string) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,6 +36,7 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'bg-red-900 text-red-200',
   duplicate: 'bg-orange-900 text-orange-200',
   filtered: 'bg-slate-600 text-slate-200',
+  deleted: 'bg-red-950 text-red-300',
 };
 
 export function ArticleTable({
@@ -40,7 +45,10 @@ export function ArticleTable({
   selectable = false,
   selectedIds = new Set(),
   onSelectionChange,
+  onArticleDeleted,
 }: ArticleTableProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   if (articles.length === 0) {
     return (
       <Card className="bg-slate-900 border-slate-800 p-12 text-center">
@@ -55,12 +63,10 @@ export function ArticleTable({
   const handleSelectAll = () => {
     if (!onSelectionChange) return;
     if (allSelected) {
-      // Deselect all visible
       const next = new Set(selectedIds);
       articles.forEach((a) => next.delete(a.id));
       onSelectionChange(next);
     } else {
-      // Select all visible
       const next = new Set(selectedIds);
       articles.forEach((a) => next.add(a.id));
       onSelectionChange(next);
@@ -76,6 +82,26 @@ export function ArticleTable({
       next.add(articleId);
     }
     onSelectionChange(next);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, articleId: string, title: string) => {
+    e.stopPropagation();
+    if (!confirm(`Delete "${title}"? This will mark it as deleted and it won't be re-scraped.`)) return;
+
+    setDeletingId(articleId);
+    try {
+      const res = await fetch(`/api/articles/${articleId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Article deleted');
+        onArticleDeleted?.(articleId);
+      } else {
+        toast.error('Failed to delete article');
+      }
+    } catch {
+      toast.error('Failed to delete article');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -94,14 +120,15 @@ export function ArticleTable({
             )}
             <TableHead className="text-slate-300">Title</TableHead>
             <TableHead className="text-slate-300">Status</TableHead>
-            <TableHead className="text-slate-300">Source</TableHead>
             <TableHead className="text-slate-300">Published</TableHead>
             <TableHead className="text-slate-300">Views</TableHead>
+            <TableHead className="text-slate-300 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {articles.map((article) => {
             const isSelected = selectedIds.has(article.id);
+            const articleTitle = article.title || article.original_title;
 
             return (
               <TableRow
@@ -121,15 +148,12 @@ export function ArticleTable({
                   </TableCell>
                 )}
                 <TableCell className="text-white font-medium max-w-xs truncate">
-                  {article.title || article.original_title}
+                  {articleTitle}
                 </TableCell>
                 <TableCell>
                   <Badge className={STATUS_COLORS[article.status] || 'bg-slate-700'}>
                     {article.status}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-slate-400 text-sm">
-                  {article.source_id ? 'External' : 'Manual'}
                 </TableCell>
                 <TableCell className="text-slate-400 text-sm">
                   {article.published_at
@@ -140,6 +164,38 @@ export function ArticleTable({
                   <div className="flex items-center gap-1 text-slate-400">
                     <Eye className="w-4 h-4" />
                     {article.view_count}
+                  </div>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1">
+                    {/* Edit - show for published/unpublished articles */}
+                    {(article.status === 'published' || article.status === 'unpublished') && (
+                      <Link href={`/dashboard/sites/${siteId}/articles/${article.id}/edit`}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-slate-400 hover:text-white"
+                          title="Edit article"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    )}
+                    {/* Delete */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-slate-400 hover:text-red-400"
+                      title="Delete article"
+                      disabled={deletingId === article.id}
+                      onClick={(e) => handleDelete(e, article.id, articleTitle)}
+                    >
+                      {deletingId === article.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

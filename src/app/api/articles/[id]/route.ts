@@ -167,10 +167,10 @@ export async function DELETE(
       );
     }
 
-    // Delete article
+    // Soft-delete: mark as deleted so it won't be re-scraped
     const { error } = await supabase
       .from('articles')
-      .delete()
+      .update({ status: 'deleted', updated_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {

@@ -51,6 +51,9 @@ export async function GET(request: NextRequest) {
 
     if (status && status !== 'all') {
       query = query.eq('status', status as any);
+    } else {
+      // By default, hide deleted articles unless explicitly requested
+      query = query.neq('status', 'deleted');
     }
 
     if (search) {

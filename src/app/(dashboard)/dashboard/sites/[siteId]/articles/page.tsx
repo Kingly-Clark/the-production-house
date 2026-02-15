@@ -329,6 +329,14 @@ export default function ArticlesPage() {
                   selectable
                   selectedIds={selectedIds}
                   onSelectionChange={setSelectedIds}
+                  onArticleDeleted={(id) => {
+                    setArticles((prev) => prev.filter((a) => a.id !== id));
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev);
+                      next.delete(id);
+                      return next;
+                    });
+                  }}
                 />
 
                 {/* Pagination */}

@@ -22,6 +22,12 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
   const readTime = calculateReadTime(article.content);
   const publishedDate = article.published_at ? new Date(article.published_at) : null;
 
+  // Build share URL from the current page URL (works in client components)
+  const shareUrl = typeof window !== 'undefined'
+    ? window.location.href
+    : `${process.env.NEXT_PUBLIC_APP_URL || ''}/s/${site.slug}/${article.slug}`;
+  const shareTitle = article.title || article.original_title;
+
   return (
     <article className="max-w-3xl mx-auto">
       {/* Header */}
@@ -38,7 +44,7 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
         )}
 
         <h1 className="text-3xl md:text-4xl font-bold text-[var(--text)] mb-4">
-          {article.title || article.original_title}
+          {shareTitle}
         </h1>
 
         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800 pb-4">
@@ -63,33 +69,23 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
       </header>
 
       {/* Featured Image */}
-      {article.featured_image_url && (
+      {(article.featured_image_stored || article.featured_image_url) && (
         <div className="relative w-full h-96 mb-8 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900">
           <Image
-            src={article.featured_image_url}
-            alt={article.title || article.original_title}
+            src={article.featured_image_stored || article.featured_image_url!}
+            alt={shareTitle}
             fill
             className="object-cover"
             priority
+            unoptimized
           />
         </div>
       )}
 
-      {/* Content - Note: Content is sanitized server-side before storage */}
+      {/* Content */}
       {article.content && (
         <div
-          className="prose prose-invert max-w-none mb-8
-            dark:prose-invert prose-headings:text-[var(--text)] prose-headings:font-bold
-            prose-p:text-[var(--text)] prose-p:leading-relaxed
-            prose-a:text-[var(--accent)] prose-a:hover:underline
-            prose-strong:text-[var(--text)] prose-strong:font-semibold
-            prose-code:text-[var(--accent)] prose-code:bg-gray-100 dark:prose-code:bg-gray-900
-            prose-pre:bg-gray-900 dark:prose-pre:bg-black
-            prose-blockquote:border-l-[var(--accent)] prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300
-            prose-img:rounded-lg
-            [&_a]:no-underline [&_a]:font-medium [&_a]:text-[var(--accent)]
-            [&_a]:hover:underline
-          "
+          className="article-content mb-8"
           dangerouslySetInnerHTML={{ __html: article.content }}
         />
       )}
@@ -115,9 +111,7 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
         </p>
         <div className="flex gap-3">
           <a
-            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
-              `${process.env.NEXT_PUBLIC_APP_URL}/s/${site.slug}/${article.slug}`
-            )}&text=${encodeURIComponent(article.title || article.original_title)}`}
+            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 text-sm font-medium bg-[var(--accent)] bg-opacity-10 text-[var(--accent)] rounded-lg hover:bg-opacity-20 transition-colors"
@@ -125,9 +119,7 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
             X (Twitter)
           </a>
           <a
-            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-              `${process.env.NEXT_PUBLIC_APP_URL}/s/${site.slug}/${article.slug}`
-            )}`}
+            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 text-sm font-medium bg-[var(--accent)] bg-opacity-10 text-[var(--accent)] rounded-lg hover:bg-opacity-20 transition-colors"
@@ -135,9 +127,7 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
             Facebook
           </a>
           <a
-            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-              `${process.env.NEXT_PUBLIC_APP_URL}/s/${site.slug}/${article.slug}`
-            )}`}
+            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 text-sm font-medium bg-[var(--accent)] bg-opacity-10 text-[var(--accent)] rounded-lg hover:bg-opacity-20 transition-colors"

@@ -94,10 +94,14 @@ export async function POST(request: NextRequest) {
       try {
         // Extract content if needed
         let extractedContent = article.original_content;
+        let featuredImageUrl = article.featured_image_url;
         if (!extractedContent && article.original_url) {
           try {
             const extracted = await extractArticleContent(article.original_url);
             extractedContent = extracted.content;
+            if (!featuredImageUrl && extracted.featuredImage) {
+              featuredImageUrl = extracted.featuredImage;
+            }
           } catch {
             // Continue with what we have
           }
@@ -177,6 +181,7 @@ export async function POST(request: NextRequest) {
           meta_description: rewritten.metaDescription,
           tags: rewritten.tags,
           category_id: categoryId,
+          featured_image_url: featuredImageUrl,
           status: 'published',
           published_at: new Date().toISOString(),
           social_copy: socialCopy,

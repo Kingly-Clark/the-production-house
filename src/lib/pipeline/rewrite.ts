@@ -90,10 +90,15 @@ export async function rewriteRawArticles(
 
         // Extract full content if not already done
         let extractedContent = article.original_content;
+        let featuredImageUrl = article.featured_image_url;
         if (!extractedContent && article.original_url) {
           try {
             const extracted = await extractArticleContent(article.original_url);
             extractedContent = extracted.content;
+            // Capture featured image if not already set
+            if (!featuredImageUrl && extracted.featuredImage) {
+              featuredImageUrl = extracted.featuredImage;
+            }
           } catch (error) {
             console.error(`Error extracting content: ${error instanceof Error ? error.message : String(error)}`);
             stats.errors++;
@@ -168,9 +173,9 @@ export async function rewriteRawArticles(
 
         // Download and store featured image
         let storedImageUrl: string | null = null;
-        if (article.featured_image_url) {
+        if (featuredImageUrl) {
           try {
-            storedImageUrl = await downloadAndStoreImage(article.featured_image_url, siteId, article.id);
+            storedImageUrl = await downloadAndStoreImage(featuredImageUrl, siteId, article.id);
           } catch (error) {
             console.error(`Error downloading image: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -201,7 +206,7 @@ export async function rewriteRawArticles(
           meta_description: rewrittenArticle.metaDescription,
           tags: rewrittenArticle.tags,
           category_id: categoryId,
-          featured_image_url: article.featured_image_url,
+          featured_image_url: featuredImageUrl,
           featured_image_stored: storedImageUrl,
           status: 'published',
           published_at: new Date().toISOString(),
