@@ -1,13 +1,63 @@
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser, getUserOrganization } from '@/lib/auth/helpers';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { getCurrentUser } from '@/lib/auth/helpers';
 import { NextRequest, NextResponse } from 'next/server';
-import { Database, Site } from '@/types/database';
+import { Database, Site, Organization } from '@/types/database';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
+// Helper to get or create organization for user
+async function getOrCreateOrganization(userId: string, userEmail: string): Promise<Organization> {
+  const adminClient = createAdminClient();
+  
+  // First check if user already has an organization
+  const { data: user } = await adminClient
+    .from('users')
+    .select('organization_id')
+    .eq('id', userId)
+    .single();
+
+  if (user?.organization_id) {
+    // User has an org, fetch it
+    const { data: org, error } = await adminClient
+      .from('organizations')
+      .select('*')
+      .eq('id', user.organization_id)
+      .single();
+    
+    if (org) return org;
+  }
+
+  // Create a new organization for the user
+  const { data: newOrg, error: orgError } = await adminClient
+    .from('organizations')
+    .insert({
+      name: `${userEmail.split('@')[0]}'s Organization`,
+      plan_status: 'active',
+      max_sites: 3, // Default free tier
+    })
+    .select()
+    .single();
+
+  if (orgError || !newOrg) {
+    throw new Error('Failed to create organization');
+  }
+
+  // Link user to the organization
+  await adminClient
+    .from('users')
+    .update({ organization_id: newOrg.id })
+    .eq('id', userId);
+
+  return newOrg;
+}
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get current user and organization
+    // Get current user
     const user = await getCurrentUser(supabase);
     if (!user) {
       return NextResponse.json(
@@ -16,7 +66,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const organization = await getUserOrganization(supabase);
+    // Get or create organization
+    const organization = await getOrCreateOrganization(user.id, user.email);
 
     // Fetch all sites for this organization
     const { data: sites, error } = await supabase
@@ -44,7 +95,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get current user and organization
+    // Get current user
     const user = await getCurrentUser(supabase);
     if (!user) {
       return NextResponse.json(
@@ -53,7 +104,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const organization = await getUserOrganization(supabase);
+    // Get or create organization
+    const organization = await getOrCreateOrganization(user.id, user.email);
 
     const body = await request.json();
     const { name, slug, description, header_text, template_id, tone_of_voice } = body;
