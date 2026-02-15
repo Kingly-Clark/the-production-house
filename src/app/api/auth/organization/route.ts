@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
           .from('users')
           .upsert({
             id: session.user.id,
-            email: session.user.email,
+            email: session.user.email || '',
             organization_id: existingOrg.id,
-            role: 'client',
+            role: 'client' as const,
             updated_at: new Date().toISOString(),
           });
         
