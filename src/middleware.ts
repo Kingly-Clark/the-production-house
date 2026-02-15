@@ -16,6 +16,7 @@ const PUBLIC_ROUTES = [
   '/auth/callback',
   '/forgot-password',
   '/reset-password',
+  '/pricing',
 ];
 
 // API routes that are public
@@ -23,6 +24,7 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/',
   '/api/public/',
   '/api/webhooks/',
+  '/api/stripe/',
 ];
 
 // Routes that require admin access
@@ -34,6 +36,16 @@ const PROTECTED_ROUTES = ['/dashboard', '/settings'];
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // Check for required environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase environment variables in middleware');
+    // Allow request to continue but skip auth checks
+    return NextResponse.next();
+  }
+
   // Clone response to modify cookies if needed
   let response = NextResponse.next({
     request: {
@@ -41,19 +53,25 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Update session and refresh auth token
-  response = await updateSession(request, response);
+  try {
+    // Update session and refresh auth token
+    response = await updateSession(request, response);
+  } catch (error) {
+    console.error('Error updating session:', error);
+    // Continue without session update
+  }
 
   // Get the hostname for custom domain routing
   const hostname = request.headers.get('host') || '';
-  const protocol = request.headers.get('x-forwarded-proto') || 'https';
 
   // Check if this is a custom domain (not our main domain)
   const mainDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000';
-  const isCustomDomain = !hostname.includes(mainDomain) && !hostname.includes('localhost');
+  const isCustomDomain = !hostname.includes(mainDomain) && 
+                         !hostname.includes('localhost') && 
+                         !hostname.includes('vercel.app');
 
   // Handle custom domain routing to public site view
-  if (isCustomDomain && !pathname.startsWith('/api')) {
+  if (isCustomDomain && !pathname.startsWith('/api') && !pathname.startsWith('/s/')) {
     // For custom domains, serve the public site view
     // The domain lookup will happen in the page component
     const newUrl = new URL(`/s/${hostname}${pathname}`, request.url);
@@ -71,16 +89,20 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
+  // Skip middleware for public site routes
+  if (pathname.startsWith('/s/')) {
+    return response;
+  }
+
   // Check if route is public
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  if (PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))) {
     return response;
   }
 
   // Create supabase client to check auth status
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  let session = null;
+  try {
+    const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -91,41 +113,49 @@ export async function middleware(request: NextRequest) {
           );
         },
       },
+    });
+
+    // Get current session
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+
+    // If no session and trying to access protected route, redirect to login
+    if (!session) {
+      if (PROTECTED_ROUTES.some(route => pathname.startsWith(route)) ||
+          ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      return response;
     }
-  );
 
-  // Get current session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    // Check admin routes
+    if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+      // Get user to check role
+      const { data: { user } } = await supabase.auth.getUser();
 
-  // If no session and trying to access protected route, redirect to login
-  if (!session) {
+      if (user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single<{ role: string }>();
+
+        if (!userData || userData.role !== 'admin') {
+          // Not admin, redirect to dashboard
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Middleware auth error:', error);
+    // On error, redirect to login for protected routes
     if (PROTECTED_ROUTES.some(route => pathname.startsWith(route)) ||
         ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
-    }
-    return response;
-  }
-
-  // Check admin routes
-  if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
-    // Get user to check role
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single<{ role: string }>();
-
-      if (!userData || userData.role !== 'admin') {
-        // Not admin, redirect to dashboard
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
     }
   }
 
