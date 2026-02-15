@@ -1,10 +1,5 @@
 'use client';
 
-// #region agent log
-// H7/H8/H9 Debug: Track SSR vs client render and component lifecycle
-console.log('[DEBUG H7-sitedetail] Module load - this should appear in both SSR and client');
-// #endregion
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
@@ -27,16 +22,8 @@ interface SiteStats {
 }
 
 export default function SiteDetail() {
-  // #region agent log
-  console.log('[DEBUG H7-sitedetail] SiteDetail component rendering');
-  // #endregion
-
   const params = useParams();
   const siteId = params.siteId as string;
-
-  // #region agent log
-  console.log('[DEBUG H7-sitedetail] Got params', { siteId });
-  // #endregion
 
   const [site, setSite] = useState<Site | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);

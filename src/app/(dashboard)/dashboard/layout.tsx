@@ -1,9 +1,5 @@
 'use client';
 
-// #region agent log
-console.log('[DEBUG H7-dashboard] Dashboard layout module load');
-// #endregion
-
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
