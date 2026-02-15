@@ -56,12 +56,12 @@ export async function rewriteRawArticles(
     const brandSummary = org?.brand_summary || null;
     const articlesPerDay = limit || site.articles_per_day || 10;
 
-    // Get raw articles
+    // Get articles that need rewriting (raw, failed, or filtered)
     const { data: rawArticles, error: articlesError } = await supabase
       .from('articles')
       .select('*')
       .eq('site_id', siteId)
-      .eq('status', 'raw')
+      .in('status', ['raw', 'failed', 'filtered'])
       .limit(articlesPerDay);
 
     if (articlesError) {

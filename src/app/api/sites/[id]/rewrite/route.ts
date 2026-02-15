@@ -39,11 +39,11 @@ export async function POST(
       .from('articles')
       .select('id', { count: 'exact', head: true })
       .eq('site_id', siteId)
-      .eq('status', 'raw');
+      .in('status', ['raw', 'failed', 'filtered']);
 
     if (!count || count === 0) {
       return NextResponse.json(
-        { error: 'No raw articles to rewrite. Fetch sources first.' },
+        { error: 'No articles to rewrite. Fetch sources first.' },
         { status: 400 }
       );
     }

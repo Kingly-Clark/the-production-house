@@ -1,72 +1,19 @@
-import { filterSalesContent } from '@/lib/ai/gemini';
+// Content filter — only blocks obvious spam/landing pages, not normal articles.
+// Intentionally lenient: the platform's purpose is to syndicate and rewrite content,
+// so we only filter content that is purely a sales landing page or spam.
 
-const SALES_KEYWORDS = [
+// These are aggressive CTA phrases that indicate a landing page, not an article
+const LANDING_PAGE_PHRASES = [
+  'add to cart',
   'buy now',
   'buy online',
   'shop now',
-  'limited time',
-  'discount',
-  'promo',
-  'sale',
-  'coupon',
-  'deal',
-  'offer',
-  'special price',
-  'exclusive deal',
-  'free shipping',
   'order now',
-  'add to cart',
-  'checkout',
-  'get yours',
-  'claim yours',
-  'save now',
-  'limited stock',
+  'checkout now',
+  'get yours today',
+  'claim yours now',
+  'limited stock remaining',
 ];
-
-const PRICE_PATTERNS = [/\$\s*\d+/, /€\s*\d+/, /£\s*\d+/, /\d+\s*€/, /\d+\s*£/];
-
-function countUppercaseWords(text: string): { uppercase: number; total: number } {
-  const words = text.split(/\s+/).filter((w) => w.length > 0);
-  let uppercaseCount = 0;
-
-  for (const word of words) {
-    // Check if word is mostly uppercase letters
-    const letters = word.replace(/[^a-zA-Z]/g, '');
-    if (letters.length > 0 && letters === letters.toUpperCase()) {
-      uppercaseCount++;
-    }
-  }
-
-  return {
-    uppercase: uppercaseCount,
-    total: words.length,
-  };
-}
-
-function countLinks(content: string): number {
-  const linkPattern = /<a\s+href/gi;
-  const matches = content.match(linkPattern);
-  return matches ? matches.length : 0;
-}
-
-function containsSalesKeywords(text: string): boolean {
-  const lowerText = text.toLowerCase();
-  for (const keyword of SALES_KEYWORDS) {
-    if (lowerText.includes(keyword)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function containsPriceMentions(text: string): boolean {
-  for (const pattern of PRICE_PATTERNS) {
-    if (pattern.test(text)) {
-      return true;
-    }
-  }
-  return false;
-}
 
 export interface FilterResult {
   shouldFilter: boolean;
@@ -74,65 +21,35 @@ export interface FilterResult {
 }
 
 export async function filterContent(title: string, content: string): Promise<FilterResult> {
-  const textToAnalyze = `${title} ${content}`;
+  // Only filter if the content is extremely short (likely a landing page stub)
+  // or contains multiple aggressive sales CTAs
+  const textToAnalyze = `${title} ${content}`.toLowerCase();
 
-  // Check for obvious sales indicators
-  if (containsSalesKeywords(textToAnalyze)) {
-    return {
-      shouldFilter: true,
-      reason: 'Contains sales keywords',
-    };
-  }
-
-  // Check for excessive uppercase
-  const { uppercase, total } = countUppercaseWords(textToAnalyze);
-  if (total > 0 && uppercase / total > 0.3) {
-    return {
-      shouldFilter: true,
-      reason: 'Excessive uppercase text (>30%)',
-    };
-  }
-
-  // Check for too many links
-  const linkCount = countLinks(content);
-  if (linkCount > 10) {
-    return {
-      shouldFilter: true,
-      reason: 'Too many links in content (>10)',
-    };
-  }
-
-  // Check for price mentions
-  if (containsPriceMentions(textToAnalyze)) {
-    // This is borderline - ask Gemini for final determination
-    try {
-      const geminResult = await filterSalesContent(title, content);
-      if (geminResult.isSales && geminResult.confidence > 0.6) {
-        return {
-          shouldFilter: true,
-          reason: 'Detected as sales content by AI (price mentions)',
-        };
-      }
-    } catch (error) {
-      console.error('Error checking with Gemini:', error);
-      // Don't filter on borderline cases if Gemini fails
+  // Count how many aggressive landing-page phrases appear
+  let ctaCount = 0;
+  for (const phrase of LANDING_PAGE_PHRASES) {
+    if (textToAnalyze.includes(phrase)) {
+      ctaCount++;
     }
   }
 
-  // For borderline cases, ask Gemini
-  try {
-    const geminResult = await filterSalesContent(title, content);
-    if (geminResult.isSales && geminResult.confidence > 0.75) {
-      return {
-        shouldFilter: true,
-        reason: 'Detected as sales content by AI',
-      };
-    }
-  } catch (error) {
-    console.error('Error checking with Gemini:', error);
-    // Default to allowing content if AI check fails
+  // Only filter if 3+ aggressive CTAs found — this is almost certainly a product page
+  if (ctaCount >= 3) {
+    return {
+      shouldFilter: true,
+      reason: `Contains ${ctaCount} sales call-to-action phrases (likely a product page)`,
+    };
   }
 
+  // Filter if content is nearly empty (< 50 chars excluding title)
+  if (content.trim().length < 50) {
+    return {
+      shouldFilter: true,
+      reason: 'Content too short to rewrite',
+    };
+  }
+
+  // Allow everything else — the rewriter will handle normal articles
   return {
     shouldFilter: false,
     reason: '',
