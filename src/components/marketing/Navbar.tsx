@@ -40,12 +40,12 @@ export function Navbar() {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/auth/login">
+            <Link href="/login">
               <Button variant="ghost" className="text-slate-300 hover:text-white">
                 Login
               </Button>
             </Link>
-            <Link href="/auth/signup">
+            <Link href="/signup">
               <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                 Get Started
               </Button>
@@ -77,12 +77,12 @@ export function Navbar() {
                 </a>
               ))}
               <div className="flex flex-col gap-2 px-4 pt-4 border-t border-slate-800">
-                <Link href="/auth/login">
+                <Link href="/login">
                   <Button variant="outline" className="w-full">
                     Login
                   </Button>
                 </Link>
-                <Link href="/auth/signup">
+                <Link href="/signup">
                   <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
                     Get Started
                   </Button>

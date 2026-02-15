@@ -37,7 +37,7 @@ export function Hero() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-          <Link href="/auth/signup">
+          <Link href="/signup">
             <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white gap-2">
               Get Started Free
               <ArrowRight size={20} />
