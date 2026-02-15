@@ -89,7 +89,7 @@ function SplineBackground() {
 
 function HeroContent() {
   return (
-    <div className="text-left sm:text-left text-center text-white pt-8 sm:pt-24 md:pt-28 px-4 max-w-3xl pointer-events-none mx-auto sm:mx-0">
+    <div className="text-left sm:text-left text-center text-white pt-20 sm:pt-24 md:pt-28 px-4 max-w-3xl pointer-events-none mx-auto sm:mx-0">
       {/* Badge */}
       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-700/50 mb-4 sm:mb-6 backdrop-blur-sm pointer-events-auto">
         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
