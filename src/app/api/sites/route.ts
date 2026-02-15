@@ -27,7 +27,7 @@ async function getOrCreateUser(authUserId: string, authUserEmail: string): Promi
     .insert({
       id: authUserId,
       email: authUserEmail,
-      role: 'user',
+      role: 'client',
     })
     .select()
     .single();
