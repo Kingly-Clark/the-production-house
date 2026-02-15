@@ -3,6 +3,7 @@
 // =============================================================
 // NOTE: Using @supabase/supabase-js directly instead of @supabase/ssr
 // due to React 19 / Next.js 16 / Turbopack compatibility issues (H5 confirmed)
+// BUILD CACHE BUST: 2026-02-15-H7-clean-build
 
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
