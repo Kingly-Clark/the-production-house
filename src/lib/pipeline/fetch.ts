@@ -100,6 +100,7 @@ export async function fetchAndProcessSources(
               original_content: article.content || null,
               original_author: article.author || null,
               original_published_at: article.publishedAt || null,
+              featured_image_url: article.imageUrl || null,
               status: 'raw',
               content_hash: contentHash,
               tags: [],

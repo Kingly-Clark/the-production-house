@@ -91,18 +91,27 @@ export async function rewriteRawArticles(
         // Extract full content if not already done
         let extractedContent = article.original_content;
         let featuredImageUrl = article.featured_image_url;
-        if (!extractedContent && article.original_url) {
+        
+        // Always try to extract if we need content OR featured image
+        const needsExtraction = !extractedContent || !featuredImageUrl;
+        if (needsExtraction && article.original_url) {
           try {
             const extracted = await extractArticleContent(article.original_url);
-            extractedContent = extracted.content;
+            // Use extracted content if we don't have it
+            if (!extractedContent) {
+              extractedContent = extracted.content;
+            }
             // Capture featured image if not already set
             if (!featuredImageUrl && extracted.featuredImage) {
               featuredImageUrl = extracted.featuredImage;
             }
           } catch (error) {
             console.error(`Error extracting content: ${error instanceof Error ? error.message : String(error)}`);
-            stats.errors++;
-            continue;
+            // Only fail if we needed the content - if we just needed the image, continue
+            if (!extractedContent) {
+              stats.errors++;
+              continue;
+            }
           }
         }
 

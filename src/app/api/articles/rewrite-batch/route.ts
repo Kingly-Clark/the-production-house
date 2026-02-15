@@ -93,13 +93,20 @@ export async function POST(request: NextRequest) {
       const article = articles[index];
 
       try {
-        // Extract content if needed
+        // Extract content and/or featured image if needed
         let extractedContent = article.original_content;
         let featuredImageUrl = article.featured_image_url;
-        if (!extractedContent && article.original_url) {
+        
+        // Always try to extract if we need content OR featured image
+        const needsExtraction = !extractedContent || !featuredImageUrl;
+        if (needsExtraction && article.original_url) {
           try {
             const extracted = await extractArticleContent(article.original_url);
-            extractedContent = extracted.content;
+            // Use extracted content if we don't have it
+            if (!extractedContent) {
+              extractedContent = extracted.content;
+            }
+            // Capture featured image if not already set
             if (!featuredImageUrl && extracted.featuredImage) {
               featuredImageUrl = extracted.featuredImage;
             }
