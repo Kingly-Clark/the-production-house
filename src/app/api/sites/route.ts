@@ -8,7 +8,14 @@ export const dynamic = 'force-dynamic';
 
 // Helper to get or create user record in users table
 async function getOrCreateUser(authUserId: string, authUserEmail: string): Promise<User> {
-  const adminClient = createAdminClient();
+  let adminClient;
+  
+  try {
+    adminClient = createAdminClient();
+  } catch (envError) {
+    console.error('Admin client creation failed - missing SUPABASE_SERVICE_ROLE_KEY?', envError);
+    throw new Error('Server configuration error - please contact support');
+  }
   
   // Check if user exists in users table
   const { data: existingUser, error: fetchError } = await adminClient
@@ -21,20 +28,32 @@ async function getOrCreateUser(authUserId: string, authUserEmail: string): Promi
     return existingUser;
   }
 
-  // User doesn't exist, create them
+  // Ignore "not found" errors - they just mean user doesn't exist yet
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    console.error('Error fetching user:', fetchError);
+  }
+
+  // User doesn't exist, create them using upsert to handle race conditions
   const { data: newUser, error: createError } = await adminClient
     .from('users')
-    .insert({
+    .upsert({
       id: authUserId,
       email: authUserEmail,
       role: 'client',
+    }, {
+      onConflict: 'id',
+      ignoreDuplicates: false,
     })
     .select()
     .single();
 
-  if (createError || !newUser) {
-    console.error('Error creating user:', createError);
-    throw new Error('Failed to create user record');
+  if (createError) {
+    console.error('Error creating user - code:', createError.code, 'message:', createError.message, 'details:', createError.details);
+    throw new Error(`Failed to create user record: ${createError.message}`);
+  }
+  
+  if (!newUser) {
+    throw new Error('Failed to create user record: no data returned');
   }
 
   return newUser;
@@ -67,15 +86,19 @@ async function getOrCreateOrganization(user: User, userEmail: string): Promise<O
     .single();
 
   if (orgError || !newOrg) {
-    console.error('Error creating organization:', orgError);
-    throw new Error('Failed to create organization');
+    console.error('Error creating organization - code:', orgError?.code, 'message:', orgError?.message);
+    throw new Error(`Failed to create organization: ${orgError?.message || 'unknown error'}`);
   }
 
   // Link user to the organization
-  await adminClient
+  const { error: updateError } = await adminClient
     .from('users')
     .update({ organization_id: newOrg.id })
     .eq('id', user.id);
+    
+  if (updateError) {
+    console.error('Error linking user to organization:', updateError);
+  }
 
   return newOrg;
 }
