@@ -26,6 +26,8 @@ export default function ArticleCard({
   const readTime = calculateReadTime(article.content);
   const publishedDate = article.published_at ? new Date(article.published_at) : null;
   const articleUrl = `/s/${slug}/${article.slug}`;
+  // Prefer stored image (Supabase), fallback to original URL
+  const imageUrl = article.featured_image_stored || article.featured_image_url;
 
   if (variant === 'compact') {
     return (
@@ -50,13 +52,14 @@ export default function ArticleCard({
   if (variant === 'horizontal') {
     return (
       <article className="flex gap-4 group">
-        {article.featured_image_url && (
-          <div className="relative w-32 h-24 flex-shrink-0 overflow-hidden rounded-lg">
+        {imageUrl && (
+          <div className="relative w-32 h-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900">
             <Image
-              src={article.featured_image_url}
+              src={imageUrl}
               alt={article.title || article.original_title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
+              unoptimized
             />
           </div>
         )}
@@ -89,13 +92,14 @@ export default function ArticleCard({
   // Default variant
   return (
     <article className="group overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 hover:border-[var(--accent)] transition-colors">
-      {article.featured_image_url && (
+      {imageUrl && (
         <div className="relative w-full h-48 overflow-hidden bg-gray-100 dark:bg-gray-900">
           <Image
-            src={article.featured_image_url}
+            src={imageUrl}
             alt={article.title || article.original_title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
+            unoptimized
           />
         </div>
       )}
