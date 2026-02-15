@@ -58,19 +58,21 @@ export function Features() {
         </div>
 
         {/* Features grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {features.map((feature) => {
             const Icon = feature.icon;
             return (
               <Card
                 key={feature.title}
-                className="bg-slate-800/50 border-slate-700 p-8 hover:border-blue-600 transition-all hover:shadow-lg hover:shadow-blue-600/10 group"
+                className="bg-slate-800/50 border-slate-700 p-4 md:p-6 hover:border-blue-600 transition-all hover:shadow-lg hover:shadow-blue-600/10 group"
               >
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Icon className="w-6 h-6 text-white" />
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">{feature.title}</h3>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-3">{feature.title}</h3>
-                <p className="text-slate-300">{feature.description}</p>
+                <p className="text-sm text-slate-300 pl-[52px]">{feature.description}</p>
               </Card>
             );
           })}

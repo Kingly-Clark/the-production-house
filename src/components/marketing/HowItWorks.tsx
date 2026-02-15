@@ -39,29 +39,31 @@ export function HowItWorks() {
         </div>
 
         {/* Steps grid */}
-        <div className="grid md:grid-cols-3 gap-8 relative">
+        <div className="grid md:grid-cols-3 gap-4 md:gap-6 relative">
           {steps.map((step, idx) => {
             const Icon = step.icon;
             return (
               <div key={step.number} className="relative">
                 {/* Connecting lines */}
                 {idx < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-20 left-[60%] w-[180%] h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 opacity-30" />
+                  <div className="hidden md:block absolute top-12 left-[60%] w-[180%] h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 opacity-30" />
                 )}
 
                 {/* Card */}
-                <Card className="bg-slate-900 border-slate-800 p-8 h-full relative z-10 hover:border-blue-600 transition-colors">
-                  {/* Step number */}
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center mb-4">
-                    <span className="text-white font-bold text-lg">{step.number}</span>
+                <Card className="bg-slate-900 border-slate-800 p-4 md:p-6 h-full relative z-10 hover:border-blue-600 transition-colors">
+                  {/* Step number badge */}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center mb-3">
+                    <span className="text-white font-bold text-sm">{step.number}</span>
                   </div>
 
-                  {/* Icon */}
-                  <Icon className="w-8 h-8 text-blue-400 mb-4" />
+                  {/* Icon + Title row */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <Icon className="w-6 h-6 text-blue-400 flex-shrink-0" />
+                    <h3 className="text-base font-semibold text-white">{step.title}</h3>
+                  </div>
 
-                  {/* Content */}
-                  <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>
-                  <p className="text-slate-300">{step.description}</p>
+                  {/* Description */}
+                  <p className="text-sm text-slate-300">{step.description}</p>
                 </Card>
               </div>
             );
