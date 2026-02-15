@@ -102,7 +102,8 @@ export async function POST(
         .limit(1);
 
       if (orgUsers && orgUsers.length > 0) {
-        await supabase.from('notifications').insert({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('notifications') as any).insert({
           user_id: orgUsers[0].id,
           type: 'new_subscriber',
           title: 'New subscriber',

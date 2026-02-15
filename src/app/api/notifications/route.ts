@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
+import { Notification } from '@/types/database';
 
 // GET: List recent notifications for the current user
 export async function GET() {
@@ -25,6 +26,7 @@ export async function GET() {
     }
 
     // Get recent notifications (last 50)
+    // Note: The notifications table must be created in Supabase first
     const { data: notifications, error } = await adminClient
       .from('notifications')
       .select('*')
@@ -36,10 +38,12 @@ export async function GET() {
       throw error;
     }
 
-    const unreadCount = (notifications || []).filter((n) => !n.is_read).length;
+    // Cast to Notification type since table isn't in generated types yet
+    const typedNotifications = (notifications || []) as unknown as Notification[];
+    const unreadCount = typedNotifications.filter((n) => !n.is_read).length;
 
     return NextResponse.json({
-      notifications: notifications || [],
+      notifications: typedNotifications,
       unread_count: unreadCount,
     });
   } catch (error) {
@@ -68,17 +72,19 @@ export async function PATCH(request: NextRequest) {
       markAll?: boolean;
     };
 
+    // Use type assertion since notifications table isn't in generated types yet
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const notificationsTable = adminClient.from('notifications') as any;
+
     if (markAll) {
       // Mark all as read for this user
-      await adminClient
-        .from('notifications')
+      await notificationsTable
         .update({ is_read: true })
         .eq('user_id', session.user.id)
         .eq('is_read', false);
     } else if (notificationIds && notificationIds.length > 0) {
       // Mark specific notifications as read
-      await adminClient
-        .from('notifications')
+      await notificationsTable
         .update({ is_read: true })
         .in('id', notificationIds)
         .eq('user_id', session.user.id);
