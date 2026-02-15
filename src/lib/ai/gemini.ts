@@ -4,9 +4,12 @@ let _client: GoogleGenerativeAI | null = null;
 
 function getClient(): GoogleGenerativeAI {
   if (!_client) {
-    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    // Accept either env var name for flexibility
+    const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
-      throw new Error('GOOGLE_AI_API_KEY environment variable is required');
+      throw new Error(
+        'Google AI API key is required. Set GOOGLE_AI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY in your environment variables.'
+      );
     }
     _client = new GoogleGenerativeAI(apiKey);
   }

@@ -164,9 +164,11 @@ export default function ArticlesPage() {
             (s.failed > 0 ? ` (${s.failed} failed)` : '')
           );
         } else if (s.failed > 0) {
-          toast.error(`All ${s.failed} articles failed to rewrite. Check your GOOGLE_AI_API_KEY.`);
+          // Show the actual error from the first failed result
+          const firstError = data.results?.find((r: { status: string; error?: string }) => r.status === 'failed')?.error;
+          toast.error(firstError || `All ${s.failed} articles failed to rewrite.`);
         } else {
-          toast.info(`Processed ${s.processed} articles: ${s.filtered} filtered, ${s.duplicates} duplicates`);
+          toast.info(`Processed ${s.processed} articles: ${s.duplicates} duplicates`);
         }
         setSelectedIds(new Set());
         await fetchArticles();
