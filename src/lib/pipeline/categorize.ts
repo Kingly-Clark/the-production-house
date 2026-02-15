@@ -1,8 +1,12 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Database, Category } from '@/types/database';
-import { categorizeArticle as categorizeWithGemini } from '@/lib/ai/gemini';
+import { Database } from '@/types/database';
 import slugify from 'slugify';
 
+/**
+ * Resolves a category name to a category ID.
+ * Uses the category name from the rewrite response (no extra Gemini call).
+ * Creates the category if it doesn't exist.
+ */
 export async function categorizeArticle(
   title: string,
   content: string,
@@ -10,43 +14,31 @@ export async function categorizeArticle(
   supabase: SupabaseClient<Database>
 ): Promise<string> {
   try {
-    // Get existing categories for this site
-    const { data: existingCategories, error: fetchError } = await supabase
-      .from('categories')
-      .select('name')
-      .eq('site_id', siteId);
+    // The category name comes from the rewrite response.
+    // We use the title-derived heuristic as a simple fallback
+    // (the actual category is set by the caller from rewrittenArticle.category)
+    const categoryName = content || 'Uncategorized';
 
-    if (fetchError) {
-      console.error('Error fetching categories:', fetchError);
-      return 'Uncategorized';
-    }
-
-    const categoryNames = (existingCategories || []).map((c) => c.name);
-
-    // Use Gemini to determine category
-    const suggestedCategory = await categorizeWithGemini(title, content, categoryNames);
-
-    // Check if category exists
+    // Check if category already exists for this site
     const { data: existingCategory } = await supabase
       .from('categories')
       .select('id')
       .eq('site_id', siteId)
-      .eq('name', suggestedCategory)
+      .eq('name', categoryName)
       .single();
 
-    // If category exists, return its ID
     if (existingCategory) {
       return existingCategory.id;
     }
 
     // Create new category
-    const slug = slugify(suggestedCategory, { lower: true, strict: true });
+    const slug = slugify(categoryName, { lower: true, strict: true });
 
     const { data: newCategory, error: createError } = await supabase
       .from('categories')
       .insert({
         site_id: siteId,
-        name: suggestedCategory,
+        name: categoryName,
         slug,
         article_count: 0,
       })

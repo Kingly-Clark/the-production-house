@@ -36,6 +36,8 @@ interface RewriteOutput {
   metaDescription: string;
   tags: string[];
   category: string;
+  socialCopy: string;
+  socialHashtags: string[];
 }
 
 interface SocialCopyOutput {
@@ -48,34 +50,60 @@ interface FilterOutput {
   confidence: number;
 }
 
+// Retry helper for rate-limited API calls
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: unknown) {
+      const isRateLimit =
+        error instanceof Error &&
+        (error.message.includes('429') ||
+         error.message.includes('Too Many Requests') ||
+         error.message.includes('RESOURCE_EXHAUSTED'));
+
+      if (isRateLimit && attempt < maxRetries) {
+        // Exponential backoff: 5s, 15s, 45s
+        const waitMs = 5000 * Math.pow(3, attempt);
+        console.log(`Rate limited, retrying in ${waitMs / 1000}s (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 export async function rewriteArticle(input: RewriteInput): Promise<RewriteOutput> {
   const { title, content, tone, brandSummary } = input;
 
-  const systemPrompt = `You are an expert content rewriter for a content syndication platform. Your task is to rewrite syndicated articles with unique voice and high SEO value.
+  // Single combined prompt — rewrite + category + social copy in one API call
+  const systemPrompt = `You are an expert content rewriter for a content syndication platform. Your task is to rewrite syndicated articles with unique voice and high SEO value, AND generate social media copy.
 
 CRITICAL REQUIREMENTS:
 1. Rewrite the article in a completely unique voice - do not paraphrase the original
 2. Match the tone of voice: "${tone}"
-3. Incorporate this brand context in the content where relevant: ${brandSummary || 'No specific brand context provided'}
-4. Create an SEO-friendly title that includes relevant keywords
+3. Incorporate this brand context where relevant: ${brandSummary || 'No specific brand context provided'}
+4. Create an SEO-friendly title with relevant keywords
 5. Write a concise excerpt (2-3 sentences) that hooks readers
-6. Generate a meta description (150-160 characters) optimized for search engines
-7. Identify 5-7 relevant tags for content categorization
-8. Suggest a primary category for this content
+6. Generate a meta description (150-160 characters) optimized for search
+7. Identify 5-7 relevant tags
+8. Suggest a primary category name
+9. Generate a short social media post (under 200 chars) promoting this article
+10. Generate 5-8 relevant hashtags for social media
 
 The rewritten content must:
-- Be original and provide unique perspective on the topic
-- Maintain factual accuracy of the original
-- Be 15-20% longer than the original with added insights
-- Include internal linking suggestions where relevant
-- Be formatted for web readability with short paragraphs`;
+- Be original and provide unique perspective
+- Maintain factual accuracy
+- Be formatted for web readability with short paragraphs using HTML tags`;
 
-  const userPrompt = `Rewrite this article:
+  const userPrompt = `Rewrite this article and generate social media copy:
 
 TITLE: ${title}
 
 CONTENT:
-${content}
+${content.substring(0, 8000)}
 
 Return your response as valid JSON (no markdown, no code blocks) with this exact structure:
 {
@@ -84,10 +112,12 @@ Return your response as valid JSON (no markdown, no code blocks) with this exact
   "excerpt": "2-3 sentence excerpt",
   "metaDescription": "150-160 character meta description",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-  "category": "Primary category name"
+  "category": "Primary category name",
+  "socialCopy": "Short engaging social media post under 200 characters",
+  "socialHashtags": ["hashtag1", "hashtag2", "hashtag3"]
 }`;
 
-  try {
+  return withRetry(async () => {
     const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const response = await model.generateContent({
       contents: [
@@ -104,7 +134,10 @@ Return your response as valid JSON (no markdown, no code blocks) with this exact
       throw new Error('No response text from Gemini');
     }
 
-    const parsed = JSON.parse(responseText);
+    // Clean potential markdown wrapping
+    const cleaned = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+
     return {
       title: parsed.title || title,
       content: parsed.content || content,
@@ -112,11 +145,10 @@ Return your response as valid JSON (no markdown, no code blocks) with this exact
       metaDescription: parsed.metaDescription || '',
       tags: parsed.tags || [],
       category: parsed.category || 'Uncategorized',
+      socialCopy: parsed.socialCopy || parsed.title || title,
+      socialHashtags: parsed.socialHashtags || [],
     };
-  } catch (error) {
-    console.error('Error rewriting article with Gemini:', error);
-    throw error;
-  }
+  });
 }
 
 export async function generateSocialCopy(

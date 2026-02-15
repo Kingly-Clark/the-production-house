@@ -5,7 +5,6 @@ import { extractArticleContent } from '@/lib/pipeline/extract-content';
 import { rewriteArticle } from '@/lib/ai/gemini';
 import { computeSimHash, isDuplicate } from '@/lib/pipeline/simhash';
 import { categorizeArticle } from '@/lib/pipeline/categorize';
-import { generateSocialCopy } from '@/lib/pipeline/social-copy';
 import { insertBacklink } from '@/lib/pipeline/backlink';
 import slugify from 'slugify';
 
@@ -137,12 +136,12 @@ export async function POST(request: NextRequest) {
           brandSummary,
         });
 
-        // Categorize
+        // Resolve category from the AI-suggested name (no extra Gemini call)
         let categoryId: string | null = null;
         try {
           categoryId = await categorizeArticle(
             rewritten.title,
-            rewritten.content,
+            rewritten.category || 'Uncategorized',
             siteId,
             adminClient
           );
@@ -150,19 +149,9 @@ export async function POST(request: NextRequest) {
           // Non-critical
         }
 
-        // Social copy
-        let socialCopy = '';
-        let socialHashtags: string[] = [];
-        try {
-          const socialResult = await generateSocialCopy(
-            { ...article, title: rewritten.title, excerpt: rewritten.excerpt, content: rewritten.content },
-            ['linkedin', 'facebook', 'x', 'instagram']
-          );
-          socialCopy = socialResult.copy;
-          socialHashtags = socialResult.hashtags;
-        } catch {
-          // Non-critical
-        }
+        // Use social copy from the combined rewrite response
+        const socialCopy = rewritten.socialCopy || '';
+        const socialHashtags = rewritten.socialHashtags || [];
 
         // Backlinks
         let contentWithBacklink = rewritten.content;

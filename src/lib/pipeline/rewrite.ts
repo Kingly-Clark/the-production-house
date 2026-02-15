@@ -6,7 +6,6 @@ import { filterContent } from './filter';
 import { computeSimHash, isDuplicate } from './simhash';
 import { downloadAndStoreImage } from './download-image';
 import { insertBacklink } from './backlink';
-import { generateSocialCopy } from './social-copy';
 import { categorizeArticle } from './categorize';
 import slugify from 'slugify';
 import crypto from 'crypto';
@@ -135,7 +134,7 @@ export async function rewriteRawArticles(
           continue;
         }
 
-        // Rewrite article with Gemini
+        // Rewrite article with Gemini (single API call: rewrite + category + social copy)
         let rewrittenArticle;
         try {
           rewrittenArticle = await rewriteArticle({
@@ -150,12 +149,12 @@ export async function rewriteRawArticles(
           continue;
         }
 
-        // Auto-categorize
+        // Resolve category from the AI-suggested name (no extra Gemini call)
         let categoryId: string | null = null;
         try {
           categoryId = await categorizeArticle(
             rewrittenArticle.title,
-            rewrittenArticle.content,
+            rewrittenArticle.category || 'Uncategorized',
             siteId,
             supabase
           );
@@ -163,24 +162,9 @@ export async function rewriteRawArticles(
           console.error(`Error categorizing article: ${error instanceof Error ? error.message : String(error)}`);
         }
 
-        // Generate social copy
-        let socialCopy = '';
-        let socialHashtags: string[] = [];
-        try {
-          const socialResult = await generateSocialCopy(
-            {
-              ...article,
-              title: rewrittenArticle.title,
-              excerpt: rewrittenArticle.excerpt,
-              content: rewrittenArticle.content,
-            },
-            ['linkedin', 'facebook', 'x', 'instagram']
-          );
-          socialCopy = socialResult.copy;
-          socialHashtags = socialResult.hashtags;
-        } catch (error) {
-          console.error(`Error generating social copy: ${error instanceof Error ? error.message : String(error)}`);
-        }
+        // Use social copy from the combined rewrite response
+        const socialCopy = rewrittenArticle.socialCopy || '';
+        const socialHashtags = rewrittenArticle.socialHashtags || [];
 
         // Download and store featured image
         let storedImageUrl: string | null = null;
@@ -189,7 +173,6 @@ export async function rewriteRawArticles(
             storedImageUrl = await downloadAndStoreImage(article.featured_image_url, siteId, article.id);
           } catch (error) {
             console.error(`Error downloading image: ${error instanceof Error ? error.message : String(error)}`);
-            // Don't fail the whole article if image fails
           }
         }
 
