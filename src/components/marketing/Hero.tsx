@@ -42,15 +42,15 @@ function SplineBackground() {
 
 function HeroContent() {
   return (
-    <div className="text-left text-white pt-24 sm:pt-32 md:pt-40 px-4 max-w-3xl pointer-events-none">
+    <div className="text-left text-white pt-20 sm:pt-24 md:pt-28 px-4 max-w-3xl pointer-events-none">
       {/* Badge */}
-      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-700/50 mb-8 backdrop-blur-sm pointer-events-auto">
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-700/50 mb-6 backdrop-blur-sm pointer-events-auto">
         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         <span className="text-sm text-slate-300">Now accepting early adopters</span>
       </div>
 
       {/* Main headline */}
-      <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
+      <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
         Automated Content Sites That Build Your{' '}
         <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
           SEO Authority
@@ -58,7 +58,7 @@ function HeroContent() {
       </h1>
 
       {/* Subheading */}
-      <p className="text-base sm:text-lg md:text-xl mb-8 opacity-90 max-w-xl leading-relaxed text-slate-300">
+      <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 opacity-90 max-w-xl leading-relaxed text-slate-300">
         Add your content sources, let our AI rewrite and optimize them, then publish automatically to beautiful sites with
         built-in newsletters, social media posting, and custom domains.
       </p>
@@ -68,16 +68,16 @@ function HeroContent() {
         <Link href="/signup">
           <Button
             size="lg"
-            className="bg-gradient-to-r from-blue-600/80 to-purple-600/80 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-3 px-8 rounded-full transition duration-300 w-full sm:w-auto border border-blue-500/30 backdrop-blur-sm gap-2"
+            className="bg-gradient-to-r from-blue-600/80 to-purple-600/80 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-full transition duration-300 w-full sm:w-auto border border-blue-500/30 backdrop-blur-sm gap-2"
           >
             Get Started Free
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </Link>
         <Button
           size="lg"
           variant="outline"
-          className="bg-slate-900/50 border border-slate-600 hover:border-slate-400 text-slate-200 hover:text-white font-medium py-3 px-8 rounded-full transition duration-300 flex items-center justify-center w-full sm:w-auto backdrop-blur-sm"
+          className="bg-slate-900/50 border border-slate-600 hover:border-slate-400 text-slate-200 hover:text-white font-medium py-2.5 sm:py-3 px-6 sm:px-8 rounded-full transition duration-300 flex items-center justify-center w-full sm:w-auto backdrop-blur-sm"
         >
           <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2 fill-current" />
           Watch Demo
@@ -85,7 +85,7 @@ function HeroContent() {
       </div>
 
       {/* Trust indicators */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-sm text-slate-400 pt-8 mt-8 border-t border-slate-700/50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 text-xs sm:text-sm text-slate-400 pt-6 mt-6 border-t border-slate-700/50">
         <div className="flex items-center gap-2">
           <span className="text-green-400">✓</span> No credit card required
         </div>

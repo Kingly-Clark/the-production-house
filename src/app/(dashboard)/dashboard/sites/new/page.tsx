@@ -10,13 +10,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { TemplateSelector } from '@/components/dashboard/TemplateSelector';
+import { TemplateId } from '@/types/database';
 
 export default function NewSitePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    slug: string;
+    description: string;
+    header_text: string;
+    template_id: TemplateId;
+    tone_of_voice: string;
+  }>({
     name: '',
     slug: '',
     description: '',
@@ -172,25 +181,14 @@ export default function NewSitePage() {
 
             {/* Template */}
             <div className="space-y-2">
-              <Label htmlFor="template" className="text-white">Template</Label>
-              <Select 
-                value={formData.template_id} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, template_id: value }))}
-                disabled={loading}
-              >
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                  <SelectValue placeholder="Select a template" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="classic">Classic</SelectItem>
-                  <SelectItem value="modern">Modern</SelectItem>
-                  <SelectItem value="minimal">Minimal</SelectItem>
-                  <SelectItem value="magazine">Magazine</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500">
-                Choose a design template for your site
+              <Label className="text-white">Template</Label>
+              <p className="text-xs text-slate-500 mb-3">
+                Choose a design template for your site. Click the eye icon to preview.
               </p>
+              <TemplateSelector
+                value={formData.template_id}
+                onChange={(value) => setFormData(prev => ({ ...prev, template_id: value }))}
+              />
             </div>
 
             {/* Tone of Voice */}
