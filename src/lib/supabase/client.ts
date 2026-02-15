@@ -1,8 +1,10 @@
 // Production House — Supabase Browser Client
 // Used in client components and browser context
 // =============================================================
+// NOTE: Using @supabase/supabase-js directly instead of @supabase/ssr
+// due to React 19 / Next.js 16 / Turbopack compatibility issues (H5 confirmed)
 
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
 // #region agent log
@@ -14,17 +16,42 @@ function debugLog(location: string, message: string, data: Record<string, unknow
 // #endregion
 
 // Cache the client to prevent multiple instantiations
-let cachedClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
+let cachedClient: SupabaseClient<Database> | null = null;
+
+// Custom storage that uses cookies instead of localStorage
+// This ensures auth state is available server-side
+const cookieStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof document === 'undefined') return null;
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === key) {
+        return decodeURIComponent(value);
+      }
+    }
+    return null;
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof document === 'undefined') return;
+    // Set cookie with SameSite=Lax for security, max age 1 year
+    document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
+  },
+  removeItem: (key: string): void => {
+    if (typeof document === 'undefined') return;
+    document.cookie = `${key}=; path=/; max-age=0`;
+  },
+};
 
 export function createClient() {
   // #region agent log
-  debugLog('client.ts:createClient:entry', 'createClient called', { hasCachedClient: !!cachedClient, cachedClientType: cachedClient ? typeof cachedClient : 'null' }, 'H4');
+  debugLog('client.ts:createClient:entry', 'createClient called (supabase-js)', { hasCachedClient: !!cachedClient }, 'H6-fix');
   // #endregion
 
   // Return cached client if available
   if (cachedClient) {
     // #region agent log
-    debugLog('client.ts:createClient:cached', 'Returning cached client', { hasAuth: !!(cachedClient as any)?.auth, clientKeys: cachedClient ? Object.keys(cachedClient) : [] }, 'H4');
+    debugLog('client.ts:createClient:cached', 'Returning cached client', { hasAuth: !!(cachedClient as any)?.auth }, 'H6-fix');
     // #endregion
     return cachedClient;
   }
@@ -33,41 +60,42 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // #region agent log
-  debugLog('client.ts:createClient:envCheck', 'Environment variables', { hasUrl: !!supabaseUrl, hasKey: !!supabaseAnonKey, urlPrefix: supabaseUrl?.substring(0, 20) }, 'H3');
+  debugLog('client.ts:createClient:envCheck', 'Environment variables', { hasUrl: !!supabaseUrl, hasKey: !!supabaseAnonKey }, 'H6-fix');
   // #endregion
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Missing Supabase environment variables:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseAnonKey,
-      env: typeof window !== 'undefined' ? 'browser' : 'server',
-    });
+    console.error('Missing Supabase environment variables');
     throw new Error('Missing Supabase configuration. Please check environment variables.');
   }
 
   try {
     // #region agent log
-    debugLog('client.ts:createClient:beforeCreate', 'About to call createBrowserClient', { createBrowserClientType: typeof createBrowserClient }, 'H2,H5');
+    debugLog('client.ts:createClient:beforeCreate', 'Creating client with @supabase/supabase-js + cookie storage', {}, 'H6-fix');
     // #endregion
 
-    // Use createBrowserClient from @supabase/ssr to store session in cookies
-    // This is required for server-side auth checks in middleware
-    cachedClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+    // Use @supabase/supabase-js directly with custom cookie storage
+    // This avoids the @supabase/ssr library's React 19 compatibility issues
+    cachedClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storage: cookieStorage,
+        storageKey: 'sb-auth-token',
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+    });
 
     // #region agent log
-    debugLog('client.ts:createClient:afterCreate', 'Client created', { 
-      clientType: typeof cachedClient, 
-      isNull: cachedClient === null, 
-      isUndefined: cachedClient === undefined,
+    debugLog('client.ts:createClient:afterCreate', 'Client created successfully', { 
       hasAuth: !!(cachedClient as any)?.auth,
       clientKeys: cachedClient ? Object.keys(cachedClient) : []
-    }, 'H2,H5');
+    }, 'H6-fix');
     // #endregion
 
     return cachedClient;
   } catch (error) {
     // #region agent log
-    debugLog('client.ts:createClient:error', 'Failed to create client', { error: String(error), errorType: typeof error }, 'H2,H5');
+    debugLog('client.ts:createClient:error', 'Failed to create client', { error: String(error) }, 'H6-fix');
     // #endregion
     console.error('Failed to create Supabase client:', error);
     throw error;

@@ -44,7 +44,7 @@ function LoginForm() {
     setIsLoading(true);
     
     // #region agent log
-    debugLog('login:handleEmailLogin:start', 'Starting login', {}, 'H2,H5');
+    debugLog('login:handleEmailLogin:start', 'Starting login (supabase-js fix)', {}, 'H6-fix');
     // #endregion
 
     let supabase;
@@ -55,11 +55,11 @@ function LoginForm() {
         clientType: typeof supabase, 
         hasAuth: !!(supabase as any)?.auth,
         authType: typeof (supabase as any)?.auth 
-      }, 'H2,H5');
+      }, 'H6-fix');
       // #endregion
     } catch (clientError) {
       // #region agent log
-      debugLog('login:handleEmailLogin:clientError', 'Failed to create client', { error: String(clientError) }, 'H2,H5');
+      debugLog('login:handleEmailLogin:clientError', 'Failed to create client', { error: String(clientError) }, 'H6-fix');
       // #endregion
       toast.error('Failed to initialize authentication');
       setIsLoading(false);
@@ -82,7 +82,7 @@ function LoginForm() {
       router.push(redirect);
     } catch (err) {
       // #region agent log
-      debugLog('login:handleEmailLogin:authError', 'Auth error', { error: String(err) }, 'H2,H5');
+      debugLog('login:handleEmailLogin:authError', 'Auth error', { error: String(err) }, 'H6-fix');
       // #endregion
       toast.error('An unexpected error occurred');
       console.error(err);

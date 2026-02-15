@@ -1,9 +1,10 @@
 // Production House — Next.js Middleware
 // Handles authentication, route protection, and multi-tenant routing
 // =============================================================
+// NOTE: Using @supabase/supabase-js directly to match client-side (H6 fix)
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
 // Routes that don't require authentication
@@ -31,6 +32,23 @@ const ADMIN_ROUTES = ['/admin'];
 
 // Routes that require authentication
 const PROTECTED_ROUTES = ['/dashboard', '/settings'];
+
+// Helper to parse auth token from our custom cookie
+function getSessionFromCookie(request: NextRequest): { access_token: string; refresh_token: string } | null {
+  const authCookie = request.cookies.get('sb-auth-token');
+  if (!authCookie?.value) return null;
+  
+  try {
+    const decoded = decodeURIComponent(authCookie.value);
+    const parsed = JSON.parse(decoded);
+    if (parsed.access_token && parsed.refresh_token) {
+      return parsed;
+    }
+  } catch {
+    // Cookie might be malformed
+  }
+  return null;
+}
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -81,26 +99,12 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Create Supabase client for auth checks
+  // Check authentication using our custom cookie
   try {
-    const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    });
-
-    // Refresh session (updates cookies if needed)
-    const { data: { session } } = await supabase.auth.getSession();
-
+    const sessionData = getSessionFromCookie(request);
+    
     // If no session and trying to access protected route, redirect to login
-    if (!session) {
+    if (!sessionData) {
       if (PROTECTED_ROUTES.some(route => pathname.startsWith(route)) ||
           ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
         const loginUrl = new URL('/login', request.url);
@@ -110,8 +114,17 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Check admin routes
+    // For admin routes, we need to verify the user's role
     if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+      // Create a Supabase client with the session token
+      const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${sessionData.access_token}`,
+          },
+        },
+      });
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
@@ -124,6 +137,11 @@ export async function middleware(request: NextRequest) {
         if (!userData || userData.role !== 'admin') {
           return NextResponse.redirect(new URL('/dashboard', request.url));
         }
+      } else {
+        // Token invalid, redirect to login
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
       }
     }
   } catch (error) {
