@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import type {
   Site,
@@ -27,7 +27,7 @@ async function getSiteDataAndArticles(
   articles: Article[];
   categories: Category[];
 } | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Get site
   const { data: site } = await supabase

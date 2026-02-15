@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { generateArticleMeta } from '@/lib/seo/meta';
@@ -15,7 +15,7 @@ interface ArticlePageProps {
 }
 
 async function getArticleData(siteSlug: string, articleSlug: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Get site
   const { data: site } = await supabase

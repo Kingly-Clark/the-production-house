@@ -36,7 +36,7 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
           <div className="mb-3">
             <Link
               href={`/s/${site.slug}/category/${category.slug}`}
-              className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-[var(--accent)] bg-opacity-10 text-[var(--accent)] hover:bg-opacity-20 transition-colors"
+              className="inline-block px-3 py-1 text-sm font-semibold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
             >
               {category.name}
             </Link>
@@ -106,15 +106,15 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
 
       {/* Share Section */}
       <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+        <p className="text-sm font-medium text-gray-300 mb-3">
           Share this article:
         </p>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <a
             href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] bg-opacity-10 text-[var(--accent)] rounded-lg hover:bg-opacity-20 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors border border-slate-700"
           >
             X (Twitter)
           </a>
@@ -122,7 +122,7 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
             href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] bg-opacity-10 text-[var(--accent)] rounded-lg hover:bg-opacity-20 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-[#1877F2] text-white rounded-lg hover:bg-[#166FE5] transition-colors"
           >
             Facebook
           </a>
@@ -130,7 +130,7 @@ export default function ArticleFull({ article, site, category }: ArticleFullProp
             href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-sm font-medium bg-[var(--accent)] bg-opacity-10 text-[var(--accent)] rounded-lg hover:bg-opacity-20 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-[#0A66C2] text-white rounded-lg hover:bg-[#0958A8] transition-colors"
           >
             LinkedIn
           </a>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { generateSiteMeta } from '@/lib/seo/meta';
 import SiteHeader from '@/components/site/SiteHeader';
 import SiteFooter from '@/components/site/SiteFooter';
@@ -16,7 +16,7 @@ async function getSiteData(slug: string): Promise<{
   settings: SiteSettings;
   categories: Category[];
 } | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: siteData, error: siteError } = await supabase
     .from('sites')

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Get site
   const { data: site } = await supabase

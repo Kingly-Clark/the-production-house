@@ -168,16 +168,17 @@ export function ArticleTable({
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
-                    {/* Edit - show for published/unpublished articles */}
-                    {(article.status === 'published' || article.status === 'unpublished') && (
+                    {/* Edit - show for published/unpublished/raw/failed/filtered articles */}
+                    {article.status !== 'deleted' && article.status !== 'rewriting' && (
                       <Link href={`/dashboard/sites/${siteId}/articles/${article.id}/edit`}>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-slate-400 hover:text-white"
+                          className="text-blue-400 hover:text-blue-300 gap-1"
                           title="Edit article"
                         >
                           <Pencil className="w-3.5 h-3.5" />
+                          <span className="text-xs">Edit</span>
                         </Button>
                       </Link>
                     )}
