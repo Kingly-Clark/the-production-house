@@ -72,22 +72,14 @@ export default function SiteFooter({ site }: SiteFooterProps) {
         <div className="border-t border-gray-200 dark:border-gray-800 pt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-600 dark:text-gray-400">
             <p>© {currentYear} {site.name}. All rights reserved.</p>
-            <div className="flex gap-6 mt-4 sm:mt-0">
-              <a href="#" className="hover:text-[var(--accent)] transition-colors">
-                Privacy
-              </a>
-              <a href="#" className="hover:text-[var(--accent)] transition-colors">
-                Terms
-              </a>
-              <a
-                href="https://productionhouse.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[var(--accent)] transition-colors"
-              >
-                Powered by Production House
-              </a>
-            </div>
+            <a
+              href="https://productionhouse.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[var(--accent)] transition-colors mt-4 sm:mt-0"
+            >
+              Powered by Production House
+            </a>
           </div>
         </div>
       </div>

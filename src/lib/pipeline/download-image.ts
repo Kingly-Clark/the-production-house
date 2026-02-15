@@ -1,6 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import sharp from 'sharp';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_WIDTH = 1200; // Max width for resized images
+const WEBP_QUALITY = 80; // Good balance of quality and file size
 
 async function downloadImageWithTimeout(
   imageUrl: string,
@@ -33,19 +36,6 @@ async function downloadImageWithTimeout(
   }
 }
 
-function getImageExtensionFromUrl(url: string): string {
-  try {
-    const pathname = new URL(url).pathname;
-    const match = pathname.match(/\.(\w+)$/);
-    if (match) {
-      return match[1].toLowerCase();
-    }
-  } catch {
-    // Invalid URL
-  }
-  return 'jpg'; // Default fallback
-}
-
 export async function downloadAndStoreImage(
   imageUrl: string,
   siteId: string,
@@ -55,9 +45,17 @@ export async function downloadAndStoreImage(
     // Download the image
     const imageBuffer = await downloadImageWithTimeout(imageUrl, 10000);
 
-    // Get extension
-    const extension = getImageExtensionFromUrl(imageUrl);
-    const filename = `${articleId}.${extension}`;
+    // Compress and convert to WebP using sharp
+    // - Resize to max width (maintains aspect ratio)
+    // - Convert to WebP for better compression
+    // - Quality 80 is a good balance
+    const compressedBuffer = await sharp(imageBuffer)
+      .resize(MAX_WIDTH, null, { withoutEnlargement: true })
+      .webp({ quality: WEBP_QUALITY })
+      .toBuffer();
+
+    // Always use .webp extension for compressed images
+    const filename = `${articleId}.webp`;
     const filepath = `${siteId}/${articleId}/${filename}`;
 
     // Upload to Supabase Storage
@@ -65,8 +63,8 @@ export async function downloadAndStoreImage(
 
     const { error: uploadError } = await supabase.storage
       .from('article-images')
-      .upload(filepath, imageBuffer, {
-        contentType: `image/${extension}`,
+      .upload(filepath, compressedBuffer, {
+        contentType: 'image/webp',
         upsert: true,
       });
 

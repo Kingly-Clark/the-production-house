@@ -40,7 +40,6 @@ export default function CategoryFilter({
           }`}
         >
           {category.name}
-          <span className="ml-1 text-sm opacity-75">({category.article_count})</span>
         </Link>
       ))}
     </div>

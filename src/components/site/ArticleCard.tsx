@@ -31,14 +31,14 @@ export default function ArticleCard({
 
   if (variant === 'compact') {
     return (
-      <article className="border-b pb-4 last:border-b-0">
+      <article className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
         <Link href={articleUrl} className="group">
-          <h3 className="font-semibold text-sm group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
             {article.title || article.original_title}
           </h3>
         </Link>
         {publishedDate && (
-          <time className="text-xs text-gray-500 mt-1 block">
+          <time className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
             {publishedDate.toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
