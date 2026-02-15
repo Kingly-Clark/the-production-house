@@ -6,8 +6,8 @@ import { Organization, User } from '@/types/database';
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// Helper to get or create user record in users table
-async function getOrCreateUser(authUserId: string, authUserEmail: string): Promise<User> {
+// Helper to get user record from users table (created by Supabase Auth trigger)
+async function getUser(authUserId: string): Promise<User | null> {
   let adminClient;
   
   try {
@@ -17,7 +17,7 @@ async function getOrCreateUser(authUserId: string, authUserEmail: string): Promi
     throw new Error('Server configuration error - please contact support');
   }
   
-  // Check if user exists in users table
+  // Check if user exists in users table (should be created by auth trigger)
   const { data: existingUser, error: fetchError } = await adminClient
     .from('users')
     .select('*')
@@ -28,43 +28,20 @@ async function getOrCreateUser(authUserId: string, authUserEmail: string): Promi
     return existingUser;
   }
 
-  // Ignore "not found" errors - they just mean user doesn't exist yet
+  // User not found - this is normal if trigger hasn't run yet
   if (fetchError && fetchError.code !== 'PGRST116') {
     console.error('Error fetching user:', fetchError);
   }
 
-  // User doesn't exist, create them using upsert to handle race conditions
-  const { data: newUser, error: createError } = await adminClient
-    .from('users')
-    .upsert({
-      id: authUserId,
-      email: authUserEmail,
-      role: 'client',
-    }, {
-      onConflict: 'id',
-      ignoreDuplicates: false,
-    })
-    .select()
-    .single();
-
-  if (createError) {
-    console.error('Error creating user - code:', createError.code, 'message:', createError.message, 'details:', createError.details);
-    throw new Error(`Failed to create user record: ${createError.message}`);
-  }
-  
-  if (!newUser) {
-    throw new Error('Failed to create user record: no data returned');
-  }
-
-  return newUser;
+  return null;
 }
 
 // Helper to get or create organization for user
-async function getOrCreateOrganization(user: User, userEmail: string): Promise<Organization> {
+async function getOrCreateOrganization(user: User | null, authUserId: string, userEmail: string): Promise<Organization> {
   const adminClient = createAdminClient();
   
   // Check if user already has an organization
-  if (user.organization_id) {
+  if (user?.organization_id) {
     const { data: org } = await adminClient
       .from('organizations')
       .select('*')
@@ -90,14 +67,20 @@ async function getOrCreateOrganization(user: User, userEmail: string): Promise<O
     throw new Error(`Failed to create organization: ${orgError?.message || 'unknown error'}`);
   }
 
-  // Link user to the organization
-  const { error: updateError } = await adminClient
-    .from('users')
-    .update({ organization_id: newOrg.id })
-    .eq('id', user.id);
-    
-  if (updateError) {
-    console.error('Error linking user to organization:', updateError);
+  // Link user to the organization (if user record exists)
+  if (user) {
+    const { error: updateError } = await adminClient
+      .from('users')
+      .update({ organization_id: newOrg.id })
+      .eq('id', user.id);
+      
+    if (updateError) {
+      console.error('Error linking user to organization:', updateError);
+    }
+  } else {
+    // User record doesn't exist yet - try to create minimal record
+    // or just log it for now (the auth trigger should handle this)
+    console.log('User record not found for', authUserId, '- org created but not linked');
   }
 
   return newOrg;
@@ -120,11 +103,11 @@ export async function GET(request: NextRequest) {
     // Use session user
     const authUser = session.user;
 
-    // Get or create user record in users table
-    const user = await getOrCreateUser(authUser.id, authUser.email || '');
+    // Get user record from users table (created by Supabase Auth trigger)
+    const user = await getUser(authUser.id);
 
     // Get or create organization
-    const organization = await getOrCreateOrganization(user, authUser.email || '');
+    const organization = await getOrCreateOrganization(user, authUser.id, authUser.email || '');
 
     // Fetch all sites for this organization
     const { data: sites, error } = await supabase
@@ -165,11 +148,11 @@ export async function POST(request: NextRequest) {
     // Use session user
     const authUser = session.user;
 
-    // Get or create user record in users table
-    const user = await getOrCreateUser(authUser.id, authUser.email || '');
+    // Get user record from users table (created by Supabase Auth trigger)
+    const user = await getUser(authUser.id);
 
     // Get or create organization
-    const organization = await getOrCreateOrganization(user, authUser.email || '');
+    const organization = await getOrCreateOrganization(user, authUser.id, authUser.email || '');
 
     const body = await request.json();
     const { name, slug, description, header_text, template_id, tone_of_voice } = body;
