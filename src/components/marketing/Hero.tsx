@@ -98,7 +98,8 @@ function HeroContent() {
 
       {/* Main headline */}
       <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
-        Automated Content Sites That Build Your{' '}
+        Automated Content Sites That Build Your
+        <br />
         <TypingText />
       </h1>
 
