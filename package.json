@@ -12,7 +12,6 @@
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@splinetool/react-spline": "^4.1.0",
-    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
