@@ -89,6 +89,7 @@ async function getOrCreateOrganization(user: User | null, authUserId: string, us
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminClient = createAdminClient();
 
     // Get session first (faster, reads from cookie)
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -109,8 +110,8 @@ export async function GET(request: NextRequest) {
     // Get or create organization
     const organization = await getOrCreateOrganization(user, authUser.id, authUser.email || '');
 
-    // Fetch all sites for this organization
-    const { data: sites, error } = await supabase
+    // Fetch all sites for this organization (use admin client to bypass RLS)
+    const { data: sites, error } = await adminClient
       .from('sites')
       .select('*')
       .eq('organization_id', organization.id)
@@ -134,6 +135,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminClient = createAdminClient();
 
     // Get session first (faster, reads from cookie)
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -164,8 +166,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the site
-    const { data: site, error: siteError } = await supabase
+    // Create the site (use admin client to bypass RLS)
+    const { data: site, error: siteError } = await adminClient
       .from('sites')
       .insert({
         organization_id: organization.id,
@@ -183,11 +185,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (siteError) {
-      throw siteError;
+      console.error('Error creating site:', siteError);
+      throw new Error(`Failed to create site: ${siteError.message}`);
     }
 
-    // Create default site settings
-    const { error: settingsError } = await supabase
+    // Create default site settings (use admin client)
+    const { error: settingsError } = await adminClient
       .from('site_settings')
       .insert({
         site_id: site.id,
@@ -208,11 +211,12 @@ export async function POST(request: NextRequest) {
       });
 
     if (settingsError) {
-      throw settingsError;
+      console.error('Error creating site settings:', settingsError);
+      throw new Error(`Failed to create site settings: ${settingsError.message}`);
     }
 
-    // Create default backlink settings
-    const { error: backlinkError } = await supabase
+    // Create default backlink settings (use admin client)
+    const { error: backlinkError } = await adminClient
       .from('backlink_settings')
       .insert({
         site_id: site.id,
@@ -226,7 +230,8 @@ export async function POST(request: NextRequest) {
       });
 
     if (backlinkError) {
-      throw backlinkError;
+      console.error('Error creating backlink settings:', backlinkError);
+      throw new Error(`Failed to create backlink settings: ${backlinkError.message}`);
     }
 
     return NextResponse.json(site, { status: 201 });
