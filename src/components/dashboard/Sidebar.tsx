@@ -65,7 +65,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
         {
           label: 'Backlinks',
           href: `/dashboard/sites/${siteId}/backlinks`,
-          icon: Link as any,
+          icon: LinkIcon,
         },
         {
           label: 'Social',
