@@ -35,6 +35,7 @@ export default function SiteDetail() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,17 +96,45 @@ export default function SiteDetail() {
   };
 
   const handleFetchNow = async () => {
+    setFetching(true);
     try {
       const res = await fetch(`/api/sites/${siteId}/fetch`, {
         method: 'POST',
       });
 
-      if (res.ok) {
-        toast.success('Fetch started. Check job logs for progress.');
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const s = data.stats;
+        if (s.newArticles > 0) {
+          toast.success(
+            `Fetched ${s.newArticles} new article${s.newArticles !== 1 ? 's' : ''} from ${s.sourcesProcessed} source${s.sourcesProcessed !== 1 ? 's' : ''}${s.duplicates > 0 ? ` (${s.duplicates} duplicates skipped)` : ''}`
+          );
+        } else if (s.articlesFound > 0 && s.duplicates === s.articlesFound) {
+          toast.info('No new articles found — all articles have already been fetched.');
+        } else if (s.articlesFound === 0) {
+          toast.info('No articles found in your sources. Check that your source URLs are correct.');
+        } else {
+          toast.info('Fetch completed.');
+        }
+
+        // Refresh stats and articles after fetching
+        const statsRes = await fetch(`/api/sites/${siteId}/stats`);
+        if (statsRes.ok) setStats(await statsRes.json());
+
+        const articlesRes = await fetch(`/api/articles?siteId=${siteId}&limit=5`);
+        if (articlesRes.ok) {
+          const articlesData = await articlesRes.json();
+          setArticles(articlesData.articles || []);
+        }
+      } else {
+        toast.error(data.error || 'Failed to fetch sources');
       }
     } catch (err) {
       console.error('Error fetching sources:', err);
-      toast.error('Failed to start fetch');
+      toast.error('Failed to fetch sources');
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -216,10 +245,18 @@ export default function SiteDetail() {
           {/* Fetch Now */}
           <Button
             onClick={handleFetchNow}
+            disabled={fetching}
             variant="outline"
             className="border-slate-700"
           >
-            Fetch Now
+            {fetching ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Fetching...
+              </>
+            ) : (
+              'Fetch Now'
+            )}
           </Button>
 
           {/* Delete Site */}

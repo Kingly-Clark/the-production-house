@@ -24,8 +24,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Loader2, Trash2, Check, X } from 'lucide-react';
+import { Plus, Loader2, Trash2, Check, X, Download } from 'lucide-react';
 import { Source, SourceType } from '@/types/database';
+import { toast } from 'sonner';
 
 export default function SourcesPage() {
   const params = useParams();
@@ -37,6 +38,8 @@ export default function SourcesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [validating, setValidating] = useState<string | null>(null);
+  const [fetchingSource, setFetchingSource] = useState<string | null>(null);
+  const [fetchingAll, setFetchingAll] = useState(false);
 
   const [formData, setFormData] = useState({
     url: '',
@@ -130,6 +133,60 @@ export default function SourcesPage() {
     }
   };
 
+  const handleFetchSource = async (sourceId: string) => {
+    setFetchingSource(sourceId);
+    try {
+      const res = await fetch(`/api/sources/${sourceId}/fetch`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const s = data.stats;
+        if (s.newArticles > 0) {
+          toast.success(`Fetched ${s.newArticles} new article${s.newArticles !== 1 ? 's' : ''}`);
+        } else {
+          toast.info('No new articles found.');
+        }
+        await fetchSources();
+      } else {
+        toast.error(data.error || 'Failed to fetch source');
+      }
+    } catch (err) {
+      toast.error('Error fetching source');
+    } finally {
+      setFetchingSource(null);
+    }
+  };
+
+  const handleFetchAll = async () => {
+    setFetchingAll(true);
+    try {
+      const res = await fetch(`/api/sites/${siteId}/fetch`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const s = data.stats;
+        if (s.newArticles > 0) {
+          toast.success(
+            `Fetched ${s.newArticles} new article${s.newArticles !== 1 ? 's' : ''} from ${s.sourcesProcessed} source${s.sourcesProcessed !== 1 ? 's' : ''}`
+          );
+        } else {
+          toast.info('No new articles found across all sources.');
+        }
+        await fetchSources();
+      } else {
+        toast.error(data.error || 'Failed to fetch sources');
+      }
+    } catch (err) {
+      toast.error('Error fetching sources');
+    } finally {
+      setFetchingAll(false);
+    }
+  };
+
   const handleDelete = async (sourceId: string) => {
     if (!confirm('Are you sure you want to delete this source?')) return;
 
@@ -165,14 +222,36 @@ export default function SourcesPage() {
             Manage RSS feeds and sitemaps for your site
           </p>
         </div>
-        <Button
-          onClick={() => setDialogOpen(true)}
-          disabled={sources.length >= 5}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Source
-        </Button>
+        <div className="flex gap-3">
+          {sources.length > 0 && (
+            <Button
+              onClick={handleFetchAll}
+              disabled={fetchingAll}
+              variant="outline"
+              className="border-slate-700"
+            >
+              {fetchingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Fetching...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Fetch All Sources
+                </>
+              )}
+            </Button>
+          )}
+          <Button
+            onClick={() => setDialogOpen(true)}
+            disabled={sources.length >= 5}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Source
+          </Button>
+        </div>
       </div>
 
       {sources.length >= 5 && (
@@ -251,7 +330,21 @@ export default function SourcesPage() {
                     {source.article_count}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={fetchingSource === source.id}
+                        onClick={() => handleFetchSource(source.id)}
+                        className="text-blue-400 hover:bg-blue-900/20 text-xs"
+                        title="Fetch articles from this source"
+                      >
+                        {fetchingSource === source.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
