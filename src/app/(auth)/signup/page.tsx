@@ -22,9 +22,8 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
 
-  const supabase = createClient();
-
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    const supabase = createClient();
     e.preventDefault();
     setIsLoading(true);
 
@@ -57,6 +56,7 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignup = async () => {
+    const supabase = createClient();
     setIsLoading(true);
 
     try {

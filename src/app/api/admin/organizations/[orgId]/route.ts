@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/helpers';
 
+// Force dynamic rendering - this route uses runtime env vars
+export const dynamic = 'force-dynamic';
+
 interface RequestParams {
   params: Promise<{ orgId: string }>;
 }

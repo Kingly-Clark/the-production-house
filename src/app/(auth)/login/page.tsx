@@ -33,11 +33,10 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showMagicLink, setShowMagicLink] = useState(false);
 
-  const supabase = createClient();
-
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    const supabase = createClient();
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -63,6 +62,7 @@ function LoginForm() {
   const handleMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    const supabase = createClient();
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -90,6 +90,7 @@ function LoginForm() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    const supabase = createClient();
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
