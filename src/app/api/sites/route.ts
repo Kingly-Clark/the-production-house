@@ -40,7 +40,7 @@ async function getUser(authUserId: string): Promise<User | null> {
 async function getOrCreateOrganization(user: User | null, authUserId: string, userEmail: string): Promise<Organization> {
   const adminClient = createAdminClient();
   
-  // Check if user already has an organization
+  // 1. Check if user already has an organization_id in their record
   if (user?.organization_id) {
     const { data: org } = await adminClient
       .from('organizations')
@@ -48,10 +48,44 @@ async function getOrCreateOrganization(user: User | null, authUserId: string, us
       .eq('id', user.organization_id)
       .single();
     
-    if (org) return org;
+    if (org) {
+      console.log('Found existing organization via user record:', org.id);
+      return org;
+    }
   }
 
-  // Create a new organization for the user
+  // 2. Check if user already has sites (to find their existing organization)
+  const { data: existingSites } = await adminClient
+    .from('sites')
+    .select('organization_id')
+    .limit(1);
+  
+  // Look for sites that belong to organizations that might be this user's
+  // by checking the organizations table for matching email pattern
+  const { data: existingOrgs } = await adminClient
+    .from('organizations')
+    .select('*')
+    .ilike('name', `%${userEmail.split('@')[0]}%`)
+    .limit(1);
+
+  if (existingOrgs && existingOrgs.length > 0) {
+    const existingOrg = existingOrgs[0];
+    console.log('Found existing organization by name pattern:', existingOrg.id);
+    
+    // Link user to this existing organization
+    if (user && !user.organization_id) {
+      await adminClient
+        .from('users')
+        .update({ organization_id: existingOrg.id })
+        .eq('id', user.id);
+      console.log('Linked user to existing organization');
+    }
+    
+    return existingOrg;
+  }
+
+  // 3. No existing organization found - create a new one
+  console.log('Creating new organization for user:', authUserId);
   const { data: newOrg, error: orgError } = await adminClient
     .from('organizations')
     .insert({
@@ -67,7 +101,7 @@ async function getOrCreateOrganization(user: User | null, authUserId: string, us
     throw new Error(`Failed to create organization: ${orgError?.message || 'unknown error'}`);
   }
 
-  // Link user to the organization (if user record exists)
+  // 4. Link user to the new organization
   if (user) {
     const { error: updateError } = await adminClient
       .from('users')
@@ -76,11 +110,26 @@ async function getOrCreateOrganization(user: User | null, authUserId: string, us
       
     if (updateError) {
       console.error('Error linking user to organization:', updateError);
+    } else {
+      console.log('Linked user to new organization:', newOrg.id);
     }
   } else {
-    // User record doesn't exist yet - try to create minimal record
-    // or just log it for now (the auth trigger should handle this)
-    console.log('User record not found for', authUserId, '- org created but not linked');
+    // User record doesn't exist - create it
+    console.log('Creating user record for:', authUserId);
+    const { error: createUserError } = await adminClient
+      .from('users')
+      .insert({
+        id: authUserId,
+        email: userEmail,
+        role: 'client',
+        organization_id: newOrg.id,
+      });
+    
+    if (createUserError) {
+      console.error('Error creating user record:', createUserError);
+    } else {
+      console.log('Created user record with organization:', newOrg.id);
+    }
   }
 
   return newOrg;
