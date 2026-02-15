@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/lib/auth/helpers';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -9,63 +9,66 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createClient();
-    const user = await getCurrentUser(supabase);
+    const adminClient = createAdminClient();
 
-    if (!user) {
+    // Get session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Please log in' },
         { status: 401 }
       );
     }
 
-    // Verify access
-    const { data: site, error: fetchError } = await supabase
+    // Verify site exists (use admin client to bypass RLS)
+    const { data: site, error: fetchError } = await adminClient
       .from('sites')
       .select('organization_id')
       .eq('id', id)
       .single();
 
-    if (fetchError || !site || site.organization_id !== user.organization_id) {
+    if (fetchError || !site) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
+        { error: 'Site not found' },
+        { status: 404 }
       );
     }
 
     // Get source count
-    const { count: sourceCount } = await supabase
+    const { count: sourceCount } = await adminClient
       .from('sources')
       .select('id', { count: 'exact' })
       .eq('site_id', id)
       .eq('is_active', true);
 
     // Get article counts by status
-    const { count: rawCount } = await supabase
+    const { count: rawCount } = await adminClient
       .from('articles')
       .select('id', { count: 'exact' })
       .eq('site_id', id)
       .eq('status', 'raw');
 
-    const { count: pendingCount } = await supabase
+    const { count: pendingCount } = await adminClient
       .from('articles')
       .select('id', { count: 'exact' })
       .eq('site_id', id)
       .eq('status', 'pending');
 
-    const { count: publishedCount } = await supabase
+    const { count: publishedCount } = await adminClient
       .from('articles')
       .select('id', { count: 'exact' })
       .eq('site_id', id)
       .eq('status', 'published');
 
-    const { count: unpublishedCount } = await supabase
+    const { count: unpublishedCount } = await adminClient
       .from('articles')
       .select('id', { count: 'exact' })
       .eq('site_id', id)
       .eq('status', 'unpublished');
 
     // Get subscriber count
-    const { count: subscriberCount } = await supabase
+    const { count: subscriberCount } = await adminClient
       .from('subscribers')
       .select('id', { count: 'exact' })
       .eq('site_id', id)

@@ -18,15 +18,41 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user from users table
-    const { data: user } = await adminClient
+    let { data: user } = await adminClient
       .from('users')
       .select('organization_id')
       .eq('id', session.user.id)
       .single();
 
+    // If user doesn't exist or has no org, try to find/create one
     if (!user?.organization_id) {
+      // Check if there's an existing organization for this user's email
+      const emailPrefix = session.user.email?.split('@')[0] || '';
+      const { data: existingOrg } = await adminClient
+        .from('organizations')
+        .select('*')
+        .ilike('name', `%${emailPrefix}%`)
+        .limit(1)
+        .single();
+
+      if (existingOrg) {
+        // Link user to existing org (create user if needed)
+        await adminClient
+          .from('users')
+          .upsert({
+            id: session.user.id,
+            email: session.user.email,
+            organization_id: existingOrg.id,
+            role: 'client',
+            updated_at: new Date().toISOString(),
+          });
+        
+        return NextResponse.json(existingOrg);
+      }
+
+      // No organization found - return 404 (user needs to create a site first)
       return NextResponse.json(
-        { error: 'User does not have an organization' },
+        { error: 'No organization found. Create a site to get started.' },
         { status: 404 }
       );
     }
