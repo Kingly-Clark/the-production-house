@@ -6,10 +6,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { ArticleTable } from '@/components/dashboard/ArticleTable';
-import { Loader2, Plus, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Sparkles, X } from 'lucide-react';
 import { Article, ArticleStatus } from '@/types/database';
+import { toast } from 'sonner';
 
 const STATUS_TABS: ArticleStatus[] = [
   'raw',
@@ -28,17 +28,24 @@ export default function ArticlesPage() {
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [rewriting, setRewriting] = useState(false);
+  const [rewritingSelected, setRewritingSelected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<ArticleStatus | 'all'>('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const limit = 20;
 
   useEffect(() => {
     fetchArticles();
   }, [siteId, selectedStatus, page, searchQuery]);
+
+  // Clear selection when changing tabs or pages
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [selectedStatus, page]);
 
   const fetchArticles = async () => {
     try {
@@ -74,38 +81,102 @@ export default function ArticlesPage() {
   };
 
   const handleFetchNow = async () => {
+    setFetching(true);
     try {
-      setFetching(true);
       const res = await fetch(`/api/sites/${siteId}/fetch`, {
         method: 'POST',
       });
+      const data = await res.json();
 
-      if (res.ok) {
-        alert('Fetch job started. Check back shortly.');
-        setTimeout(fetchArticles, 2000);
+      if (res.ok && data.success) {
+        const s = data.stats;
+        if (s.newArticles > 0) {
+          toast.success(
+            `Fetched ${s.newArticles} new article${s.newArticles !== 1 ? 's' : ''}`
+          );
+        } else {
+          toast.info('No new articles found.');
+        }
+        await fetchArticles();
+      } else {
+        toast.error(data.error || 'Failed to fetch sources');
       }
-    } catch (err) {
-      alert('Error starting fetch');
+    } catch {
+      toast.error('Error fetching sources');
     } finally {
       setFetching(false);
     }
   };
 
-  const handleRewriteNow = async () => {
+  const handleRewriteAll = async () => {
+    setRewriting(true);
     try {
-      setRewriting(true);
       const res = await fetch(`/api/sites/${siteId}/rewrite`, {
         method: 'POST',
       });
+      const data = await res.json();
 
-      if (res.ok) {
-        alert('Rewrite job started. Check back shortly.');
-        setTimeout(fetchArticles, 2000);
+      if (res.ok && data.success) {
+        const s = data.stats;
+        if (s.published > 0) {
+          toast.success(
+            `Rewrote and published ${s.published} article${s.published !== 1 ? 's' : ''}` +
+            (s.filtered > 0 ? ` (${s.filtered} filtered)` : '') +
+            (s.duplicates > 0 ? ` (${s.duplicates} duplicates)` : '') +
+            (s.errors > 0 ? ` (${s.errors} errors)` : '')
+          );
+        } else if (s.processed === 0) {
+          toast.info('No raw articles to rewrite. Fetch sources first.');
+        } else {
+          toast.info(
+            `Processed ${s.processed} articles: ${s.filtered} filtered, ${s.duplicates} duplicates, ${s.errors} errors`
+          );
+        }
+        setSelectedIds(new Set());
+        await fetchArticles();
+      } else {
+        toast.error(data.error || 'Failed to rewrite articles');
       }
-    } catch (err) {
-      alert('Error starting rewrite');
+    } catch {
+      toast.error('Error rewriting articles');
     } finally {
       setRewriting(false);
+    }
+  };
+
+  const handleRewriteSelected = async () => {
+    if (selectedIds.size === 0) return;
+
+    setRewritingSelected(true);
+    try {
+      const res = await fetch('/api/articles/rewrite-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleIds: Array.from(selectedIds) }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const s = data.stats;
+        if (s.published > 0) {
+          toast.success(
+            `Rewrote ${s.published} of ${s.processed} article${s.processed !== 1 ? 's' : ''}` +
+            (s.failed > 0 ? ` (${s.failed} failed)` : '')
+          );
+        } else if (s.failed > 0) {
+          toast.error(`All ${s.failed} articles failed to rewrite. Check your GOOGLE_AI_API_KEY.`);
+        } else {
+          toast.info(`Processed ${s.processed} articles: ${s.filtered} filtered, ${s.duplicates} duplicates`);
+        }
+        setSelectedIds(new Set());
+        await fetchArticles();
+      } else {
+        toast.error(data.error || 'Failed to rewrite articles');
+      }
+    } catch {
+      toast.error('Error rewriting articles');
+    } finally {
+      setRewritingSelected(false);
     }
   };
 
@@ -116,6 +187,8 @@ export default function ArticlesPage() {
       </div>
     );
   }
+
+  const rawCount = articles.filter((a) => a.status === 'raw').length;
 
   return (
     <div className="space-y-6">
@@ -146,9 +219,9 @@ export default function ArticlesPage() {
             )}
           </Button>
           <Button
-            onClick={handleRewriteNow}
+            onClick={handleRewriteAll}
             disabled={rewriting}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-purple-600 hover:bg-purple-700"
           >
             {rewriting ? (
               <>
@@ -156,11 +229,54 @@ export default function ArticlesPage() {
                 Rewriting...
               </>
             ) : (
-              'Rewrite Now'
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Rewrite All Raw
+              </>
             )}
           </Button>
         </div>
       </div>
+
+      {/* Selection action bar */}
+      {selectedIds.size > 0 && (
+        <Card className="bg-blue-950/50 border-blue-800 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-blue-200 text-sm">
+              {selectedIds.size} article{selectedIds.size !== 1 ? 's' : ''} selected
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleRewriteSelected}
+                disabled={rewritingSelected}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {rewritingSelected ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Rewriting {selectedIds.size}...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Rewrite Selected ({selectedIds.size})
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => setSelectedIds(new Set())}
+                size="sm"
+                variant="outline"
+                className="border-blue-800 text-blue-300"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Clear
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {error && (
         <Card className="bg-red-950 border-red-800 p-4 text-red-200">
@@ -205,7 +321,13 @@ export default function ArticlesPage() {
               </Card>
             ) : (
               <>
-                <ArticleTable articles={articles} siteId={siteId} />
+                <ArticleTable
+                  articles={articles}
+                  siteId={siteId}
+                  selectable
+                  selectedIds={selectedIds}
+                  onSelectionChange={setSelectedIds}
+                />
 
                 {/* Pagination */}
                 <div className="flex items-center justify-between mt-6">

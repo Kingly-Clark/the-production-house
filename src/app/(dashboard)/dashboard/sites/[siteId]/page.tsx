@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { ArticleTable } from '@/components/dashboard/ArticleTable';
-import { Loader2, Play, Pause, ExternalLink, Trash2, ArrowLeft } from 'lucide-react';
+import { Loader2, Play, Pause, ExternalLink, Trash2, ArrowLeft, Sparkles } from 'lucide-react';
 import { Site, Article } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -36,6 +36,7 @@ export default function SiteDetail() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -135,6 +136,46 @@ export default function SiteDetail() {
       toast.error('Failed to fetch sources');
     } finally {
       setFetching(false);
+    }
+  };
+
+  const handleRewriteNow = async () => {
+    setRewriting(true);
+    try {
+      const res = await fetch(`/api/sites/${siteId}/rewrite`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const s = data.stats;
+        if (s.published > 0) {
+          toast.success(
+            `Rewrote and published ${s.published} article${s.published !== 1 ? 's' : ''}` +
+            (s.errors > 0 ? ` (${s.errors} errors)` : '')
+          );
+        } else if (s.processed === 0) {
+          toast.info('No raw articles to rewrite. Fetch sources first.');
+        } else {
+          toast.info(`Processed ${s.processed} articles but none were published.`);
+        }
+
+        // Refresh stats and articles
+        const statsRes = await fetch(`/api/sites/${siteId}/stats`);
+        if (statsRes.ok) setStats(await statsRes.json());
+
+        const articlesRes = await fetch(`/api/articles?siteId=${siteId}&limit=5`);
+        if (articlesRes.ok) {
+          const articlesData = await articlesRes.json();
+          setArticles(articlesData.articles || []);
+        }
+      } else {
+        toast.error(data.error || 'Failed to rewrite articles');
+      }
+    } catch {
+      toast.error('Failed to rewrite articles');
+    } finally {
+      setRewriting(false);
     }
   };
 
@@ -256,6 +297,25 @@ export default function SiteDetail() {
               </>
             ) : (
               'Fetch Now'
+            )}
+          </Button>
+
+          {/* Rewrite Now */}
+          <Button
+            onClick={handleRewriteNow}
+            disabled={rewriting}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            {rewriting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Rewriting...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Rewrite Now
+              </>
             )}
           </Button>
 
