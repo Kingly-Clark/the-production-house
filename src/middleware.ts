@@ -3,7 +3,7 @@
 // =============================================================
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/types/database';
 
 // Routes that don't require authentication
@@ -32,36 +32,6 @@ const ADMIN_ROUTES = ['/admin'];
 // Routes that require authentication
 const PROTECTED_ROUTES = ['/dashboard', '/settings'];
 
-// Helper function to get auth token from cookies
-function getAuthFromCookies(request: NextRequest): { accessToken?: string; refreshToken?: string } {
-  const allCookies = request.cookies.getAll();
-  
-  // Try to find the Supabase auth cookie
-  for (const cookie of allCookies) {
-    if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
-      try {
-        // Try base64 decode first
-        const decoded = Buffer.from(cookie.value.split('.')[0] || cookie.value, 'base64').toString();
-        const parsed = JSON.parse(decoded);
-        return { accessToken: parsed.access_token, refreshToken: parsed.refresh_token };
-      } catch {
-        try {
-          const parsed = JSON.parse(cookie.value);
-          return { accessToken: parsed.access_token, refreshToken: parsed.refresh_token };
-        } catch {
-          // Not JSON
-        }
-      }
-    }
-  }
-  
-  // Fallback to individual cookies
-  return {
-    accessToken: request.cookies.get('sb-access-token')?.value,
-    refreshToken: request.cookies.get('sb-refresh-token')?.value,
-  };
-}
-
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -74,7 +44,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const response = NextResponse.next({
+  // Create response to pass through
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -110,41 +81,26 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Check auth status using standard Supabase client
+  // Create Supabase client for auth checks
   try {
-    const { accessToken, refreshToken } = getAuthFromCookies(request);
-    
-    // If no tokens and trying to access protected route, redirect to login
-    if (!accessToken) {
-      if (PROTECTED_ROUTES.some(route => pathname.startsWith(route)) ||
-          ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(loginUrl);
-      }
-      return response;
-    }
-
-    // Create client and verify session
-    const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+    const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
       },
     });
 
-    if (accessToken && refreshToken) {
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-    }
+    // Refresh session (updates cookies if needed)
+    const { data: { session } } = await supabase.auth.getSession();
 
-    // Verify the session is valid
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      // Invalid session, redirect to login for protected routes
+    // If no session and trying to access protected route, redirect to login
+    if (!session) {
       if (PROTECTED_ROUTES.some(route => pathname.startsWith(route)) ||
           ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
         const loginUrl = new URL('/login', request.url);
@@ -156,14 +112,18 @@ export async function middleware(request: NextRequest) {
 
     // Check admin routes
     if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single<{ role: string }>();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single<{ role: string }>();
 
-      if (!userData || userData.role !== 'admin') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        if (!userData || userData.role !== 'admin') {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
       }
     }
   } catch (error) {

@@ -2,11 +2,11 @@
 // Used in client components and browser context
 // =============================================================
 
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/database';
 
 // Cache the client to prevent multiple instantiations
-let cachedClient: ReturnType<typeof createSupabaseClient<Database>> | null = null;
+let cachedClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
 
 export function createClient() {
   // Return cached client if available
@@ -27,13 +27,9 @@ export function createClient() {
   }
 
   try {
-    cachedClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    });
+    // Use createBrowserClient from @supabase/ssr to store session in cookies
+    // This is required for server-side auth checks in middleware
+    cachedClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
     return cachedClient;
   } catch (error) {
     console.error('Failed to create Supabase client:', error);
