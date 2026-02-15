@@ -50,6 +50,7 @@ function LoginForm() {
       }
 
       toast.success('Successfully signed in!');
+      router.refresh(); // Refresh to update server state with new session
       router.push(redirect);
     } catch (err) {
       toast.error('An unexpected error occurred');

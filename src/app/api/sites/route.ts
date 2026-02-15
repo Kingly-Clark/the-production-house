@@ -84,15 +84,18 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get authenticated user from Supabase Auth
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    // Get session first (faster, reads from cookie)
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (authError || !authUser) {
+    if (sessionError || !session) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Please log in' },
         { status: 401 }
       );
     }
+
+    // Use session user
+    const authUser = session.user;
 
     // Get or create user record in users table
     const user = await getOrCreateUser(authUser.id, authUser.email || '');
@@ -126,15 +129,18 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get authenticated user from Supabase Auth
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    // Get session first (faster, reads from cookie)
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (authError || !authUser) {
+    if (sessionError || !session) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Please log in' },
         { status: 401 }
       );
     }
+
+    // Use session user
+    const authUser = session.user;
 
     // Get or create user record in users table
     const user = await getOrCreateUser(authUser.id, authUser.email || '');
