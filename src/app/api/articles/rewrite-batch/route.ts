@@ -6,6 +6,7 @@ import { rewriteArticle } from '@/lib/ai/gemini';
 import { computeSimHash, isDuplicate } from '@/lib/pipeline/simhash';
 import { categorizeArticle } from '@/lib/pipeline/categorize';
 import { insertBacklink } from '@/lib/pipeline/backlink';
+import { createNotification, getSiteOwnerUserId } from '@/lib/notifications';
 import slugify from 'slugify';
 
 export const maxDuration = 300; // 5 minute timeout
@@ -205,6 +206,25 @@ export async function POST(request: NextRequest) {
     const failed = results.filter(r => r.status === 'failed').length;
     const filtered = results.filter(r => r.status === 'filtered').length;
     const duplicates = results.filter(r => r.status === 'duplicate').length;
+
+    // Send notification if articles were published
+    if (published > 0 && siteId) {
+      const ownerId = await getSiteOwnerUserId(adminClient, siteId);
+      if (ownerId) {
+        const { data: siteData } = await adminClient
+          .from('sites')
+          .select('name')
+          .eq('id', siteId)
+          .single();
+        await createNotification(adminClient, {
+          userId: ownerId,
+          type: 'article_published',
+          title: 'Articles published',
+          message: `${published} article${published !== 1 ? 's' : ''} published on ${siteData?.name || 'your site'}`,
+          link: `/dashboard/sites/${siteId}/articles`,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,

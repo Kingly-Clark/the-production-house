@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
@@ -19,13 +19,11 @@ export async function POST(
   const { slug } = await params;
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
-    // Get request body
     const body = await request.json();
     const { email } = body as { email?: string };
 
-    // Validate email
     if (!email || !isValidEmail(email)) {
       return NextResponse.json(
         { error: 'Valid email address required' },
@@ -36,7 +34,7 @@ export async function POST(
     // Get site
     const { data: site, error: siteError } = await supabase
       .from('sites')
-      .select('*')
+      .select('id, name, organization_id')
       .eq('slug', slug)
       .single();
 
@@ -56,55 +54,70 @@ export async function POST(
       .single();
 
     if (existingSubscriber) {
-      if (existingSubscriber.is_confirmed) {
+      // If they unsubscribed, don't re-subscribe automatically
+      if (existingSubscriber.unsubscribed_at) {
         return NextResponse.json(
-          { message: 'Already subscribed!' },
-          { status: 200 }
+          { error: 'You have previously unsubscribed from this newsletter.' },
+          { status: 400 }
         );
       }
-      // If not confirmed, update confirmation token
-      const newToken = generateToken();
-      await supabase
-        .from('subscribers')
-        .update({
-          confirmation_token: newToken,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingSubscriber.id);
-
+      // Already active
       return NextResponse.json(
-        { message: 'Confirmation email sent!' },
+        { message: 'You are already subscribed!' },
         { status: 200 }
       );
     }
 
-    // Create new subscriber
-    const confirmationToken = generateToken();
+    // Create new subscriber — immediately active, no confirmation needed
     const unsubscribeToken = generateToken();
+    const now = new Date().toISOString();
 
     const { error: insertError } = await supabase
       .from('subscribers')
       .insert({
         site_id: site.id,
         email: email.toLowerCase(),
-        is_confirmed: false,
-        confirmation_token: confirmationToken,
+        is_confirmed: true,
+        confirmed_at: now,
+        confirmation_token: null,
         unsubscribe_token: unsubscribeToken,
-        subscribed_at: new Date().toISOString(),
+        subscribed_at: now,
       });
 
     if (insertError) {
+      console.error('Subscriber insert error:', insertError);
       return NextResponse.json(
         { error: 'Failed to subscribe' },
         { status: 500 }
       );
     }
 
-    // TODO: Send confirmation email here
-    // await sendConfirmationEmail(email, confirmationToken);
+    // Create notification for site owner
+    try {
+      // Find the user who owns this site's organization
+      const { data: orgUsers } = await supabase
+        .from('users')
+        .select('id')
+        .eq('organization_id', site.organization_id)
+        .limit(1);
+
+      if (orgUsers && orgUsers.length > 0) {
+        await supabase.from('notifications').insert({
+          user_id: orgUsers[0].id,
+          type: 'new_subscriber',
+          title: 'New subscriber',
+          message: `${email.toLowerCase()} subscribed to ${site.name}`,
+          is_read: false,
+          link: `/dashboard/sites/${site.id}/subscribers`,
+          created_at: now,
+        });
+      }
+    } catch {
+      // Non-critical — don't fail the subscription
+    }
 
     return NextResponse.json(
-      { message: 'Check your email to confirm your subscription!' },
+      { message: "You're subscribed!" },
       { status: 201 }
     );
   } catch (error) {

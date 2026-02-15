@@ -31,12 +31,14 @@ interface ArticleEditorProps {
   initialExcerpt: string;
   initialTags: string[];
   initialMetaDescription: string;
+  initialFeaturedImage?: string | null;
   onSave: (data: {
     title: string;
     content: string;
     excerpt: string;
     tags: string[];
     meta_description: string;
+    featured_image_url: string | null;
   }) => Promise<void>;
   saving: boolean;
 }
@@ -77,6 +79,7 @@ export function ArticleEditor({
   initialExcerpt,
   initialTags,
   initialMetaDescription,
+  initialFeaturedImage,
   onSave,
   saving,
 }: ArticleEditorProps) {
@@ -84,6 +87,8 @@ export function ArticleEditor({
   const [excerpt, setExcerpt] = useState(initialExcerpt);
   const [tagsStr, setTagsStr] = useState(initialTags.join(', '));
   const [metaDescription, setMetaDescription] = useState(initialMetaDescription);
+  const [featuredImage, setFeaturedImage] = useState<string | null>(initialFeaturedImage || null);
+  const [imageInput, setImageInput] = useState('');
 
   const editor = useEditor({
     extensions: [
@@ -122,6 +127,7 @@ export function ArticleEditor({
       excerpt,
       tags,
       meta_description: metaDescription,
+      featured_image_url: featuredImage,
     });
   };
 
@@ -157,6 +163,69 @@ export function ArticleEditor({
           className="bg-slate-800 border-slate-700 text-white text-xl font-bold"
           placeholder="Article title"
         />
+      </div>
+
+      {/* Featured Image */}
+      <div>
+        <Label className="text-slate-300 mb-2 block">Featured Image</Label>
+        {featuredImage ? (
+          <div className="space-y-3">
+            <div className="relative w-full h-48 rounded-lg overflow-hidden bg-slate-800 border border-slate-700">
+              <img
+                src={featuredImage}
+                alt="Featured"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-slate-700 text-slate-300"
+                onClick={() => {
+                  const url = window.prompt('Enter new image URL:', featuredImage);
+                  if (url !== null) setFeaturedImage(url || null);
+                }}
+              >
+                Change Image
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-red-800 text-red-400 hover:bg-red-950"
+                onClick={() => setFeaturedImage(null)}
+              >
+                Remove Image
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Input
+                value={imageInput}
+                onChange={(e) => setImageInput(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-white"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={!imageInput.trim()}
+              onClick={() => {
+                setFeaturedImage(imageInput.trim());
+                setImageInput('');
+              }}
+            >
+              <ImageIcon className="w-4 h-4 mr-1" />
+              Add
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Editor Toolbar */}

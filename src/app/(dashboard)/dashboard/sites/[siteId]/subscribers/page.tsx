@@ -27,8 +27,8 @@ export default function SubscribersPage() {
   const [exporting, setExporting] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
-    confirmed: 0,
-    unconfirmed: 0,
+    active: 0,
+    unsubscribed: 0,
   });
 
   useEffect(() => {
@@ -46,12 +46,12 @@ export default function SubscribersPage() {
       const data = await res.json();
       setSubscribers(data);
 
-      // Calculate stats
-      const confirmed = data.filter((s: Subscriber) => s.is_confirmed).length;
+      const active = data.filter((s: Subscriber) => !s.unsubscribed_at).length;
+      const unsubscribed = data.filter((s: Subscriber) => !!s.unsubscribed_at).length;
       setStats({
         total: data.length,
-        confirmed,
-        unconfirmed: data.length - confirmed,
+        active,
+        unsubscribed,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -76,7 +76,7 @@ export default function SubscribersPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (err) {
+    } catch {
       alert('Error exporting subscribers');
     } finally {
       setExporting(false);
@@ -119,28 +119,14 @@ export default function SubscribersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatsCard
-          label="Total Subscribers"
-          value={stats.total}
-          trend={0}
-        />
-        <StatsCard
-          label="Confirmed"
-          value={stats.confirmed}
-          trend={0}
-        />
-        <StatsCard
-          label="Unconfirmed"
-          value={stats.unconfirmed}
-          trend={0}
-        />
+        <StatsCard label="Total Subscribers" value={stats.total} trend={0} />
+        <StatsCard label="Active" value={stats.active} trend={0} />
+        <StatsCard label="Unsubscribed" value={stats.unsubscribed} trend={0} />
       </div>
 
       {subscribers.length === 0 ? (
         <Card className="bg-slate-900 border-slate-800 p-12 text-center">
-          <p className="text-slate-400">
-            No subscribers yet
-          </p>
+          <p className="text-slate-400">No subscribers yet</p>
         </Card>
       ) : (
         <Card className="bg-slate-900 border-slate-800 overflow-hidden">
@@ -150,39 +136,37 @@ export default function SubscribersPage() {
                 <TableHead className="text-slate-300">Email</TableHead>
                 <TableHead className="text-slate-300">Status</TableHead>
                 <TableHead className="text-slate-300">Subscribed</TableHead>
-                <TableHead className="text-slate-300">Confirmed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subscribers.map((subscriber) => (
-                <TableRow
-                  key={subscriber.id}
-                  className="border-b border-slate-800 hover:bg-slate-800/50"
-                >
-                  <TableCell className="text-white font-medium">
-                    {subscriber.email}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        subscriber.is_confirmed
-                          ? 'bg-green-900 text-green-200'
-                          : 'bg-yellow-900 text-yellow-200'
-                      }
-                    >
-                      {subscriber.is_confirmed ? 'Confirmed' : 'Pending'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-300 text-sm">
-                    {new Date(subscriber.subscribed_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-slate-300 text-sm">
-                    {subscriber.confirmed_at
-                      ? new Date(subscriber.confirmed_at).toLocaleDateString()
-                      : '-'}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {subscribers.map((subscriber) => {
+                const isUnsubscribed = !!subscriber.unsubscribed_at;
+
+                return (
+                  <TableRow
+                    key={subscriber.id}
+                    className="border-b border-slate-800 hover:bg-slate-800/50"
+                  >
+                    <TableCell className="text-white font-medium">
+                      {subscriber.email}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          isUnsubscribed
+                            ? 'bg-red-900 text-red-200'
+                            : 'bg-green-900 text-green-200'
+                        }
+                      >
+                        {isUnsubscribed ? 'Unsubscribed' : 'Active'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-300 text-sm">
+                      {new Date(subscriber.subscribed_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </Card>

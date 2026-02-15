@@ -67,12 +67,12 @@ export async function GET(
       .eq('site_id', id)
       .eq('status', 'unpublished');
 
-    // Get subscriber count
+    // Get active subscriber count (not unsubscribed)
     const { count: subscriberCount } = await adminClient
       .from('subscribers')
       .select('id', { count: 'exact' })
       .eq('site_id', id)
-      .eq('is_confirmed', true);
+      .is('unsubscribed_at', null);
 
     return NextResponse.json({
       source_count: sourceCount || 0,

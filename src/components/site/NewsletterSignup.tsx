@@ -36,7 +36,8 @@ export default function NewsletterSignup({
         return;
       }
 
-      toast.success('Thanks for subscribing! Check your email to confirm.');
+      const data = await response.json();
+      toast.success(data.message || "You're subscribed!");
       setEmail('');
     } catch {
       toast.error('Something went wrong. Please try again.');

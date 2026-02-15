@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { Article, Site, Category } from '@/types/database';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -21,6 +22,15 @@ function calculateReadTime(content: string | null): number {
 export default function ArticleFull({ article, site, category }: ArticleFullProps) {
   const readTime = calculateReadTime(article.content);
   const publishedDate = article.published_at ? new Date(article.published_at) : null;
+
+  // Track view once per session per article
+  useEffect(() => {
+    const key = `viewed-${article.id}`;
+    if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      fetch(`/api/articles/${article.id}/view`, { method: 'POST' }).catch(() => {});
+    }
+  }, [article.id]);
 
   // Build share URL from the current page URL (works in client components)
   const shareUrl = typeof window !== 'undefined'

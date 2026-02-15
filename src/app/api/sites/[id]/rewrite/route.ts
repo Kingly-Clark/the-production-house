@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { rewriteRawArticles } from '@/lib/pipeline/rewrite';
+import { createNotification, getSiteOwnerUserId } from '@/lib/notifications';
 
 export const maxDuration = 300; // 5 minute timeout
 
@@ -75,6 +76,20 @@ export async function POST(
       completed_at: new Date().toISOString(),
       duration_ms: durationMs,
     });
+
+    // Send notification if articles were published
+    if (stats.published > 0) {
+      const ownerId = await getSiteOwnerUserId(adminClient, siteId);
+      if (ownerId) {
+        await createNotification(adminClient, {
+          userId: ownerId,
+          type: 'article_published',
+          title: 'Articles published',
+          message: `${stats.published} article${stats.published !== 1 ? 's' : ''} published on ${site.name}`,
+          link: `/dashboard/sites/${siteId}/articles`,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,

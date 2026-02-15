@@ -85,8 +85,8 @@ async function getArticleData(siteSlug: string, articleSlug: string) {
     .eq('site_id', site.id)
     .single();
 
-  // Increment view count
-  await supabase.rpc('increment_view_count', { article_uuid: article.id });
+  // View count is now tracked client-side via /api/articles/[id]/view
+  // to avoid inflated counts from bots and SSR
 
   return {
     site,

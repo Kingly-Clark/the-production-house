@@ -44,6 +44,7 @@ export default function EditArticlePage() {
     excerpt: string;
     tags: string[];
     meta_description: string;
+    featured_image_url: string | null;
   }) => {
     setSaving(true);
     try {
@@ -112,6 +113,7 @@ export default function EditArticlePage() {
         initialExcerpt={article.excerpt || ''}
         initialTags={article.tags || []}
         initialMetaDescription={article.meta_description || ''}
+        initialFeaturedImage={article.featured_image_stored || article.featured_image_url}
         onSave={handleSave}
         saving={saving}
       />

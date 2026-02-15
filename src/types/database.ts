@@ -15,6 +15,7 @@ export type DomainVerificationStatus = 'pending' | 'verifying' | 'verified' | 'a
 export type SocialPlatform = 'facebook' | 'linkedin' | 'x' | 'instagram' | 'tiktok';
 export type BacklinkPlacement = 'inline' | 'banner' | 'both';
 export type AlertType = 'cron_failure' | 'source_error' | 'rewrite_failure' | 'payment_failed' | 'domain_issue' | 'social_error' | 'system';
+export type NotificationType = 'article_published' | 'new_subscriber' | 'billing';
 export type AlertSeverity = 'info' | 'warning' | 'critical';
 export type JobType = 'fetch_sources' | 'rewrite_articles' | 'publish_articles' | 'post_social' | 'send_newsletter' | 'check_domains';
 export type JobStatus = 'running' | 'completed' | 'failed';
@@ -282,6 +283,17 @@ export interface SiteWithStats extends Site {
 export interface ArticleWithCategory extends Article {
   category?: Category;
   source?: Source;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  link: string | null;
+  created_at: string;
 }
 
 // =============================================================
