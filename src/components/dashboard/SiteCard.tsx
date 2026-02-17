@@ -80,36 +80,8 @@ export function SiteCard({ site, onDeleted }: SiteCardProps) {
     }
   };
 
-  const templateColors: Record<string, string> = {
-    classic: 'from-blue-600',
-    magazine: 'from-purple-600',
-    minimal: 'from-slate-600',
-    bold: 'from-red-600',
-    tech: 'from-cyan-600',
-  };
-
   return (
     <Card className="bg-slate-900 border-slate-800 overflow-hidden hover:border-slate-700 transition-colors group relative">
-      {/* Template preview header */}
-      <div
-        className={`h-24 bg-gradient-to-r ${
-          templateColors[site.template_id]
-        } to-slate-900 relative`}
-      >
-        {/* Delete button in corner */}
-        {!showDeleteConfirm && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDeleteConfirm(true);
-            }}
-            className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/60 text-slate-400 hover:text-red-400 hover:bg-red-950/80 opacity-0 group-hover:opacity-100 transition-all"
-            title="Delete site"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
-      </div>
 
       {/* Delete confirmation overlay */}
       {showDeleteConfirm && (
@@ -149,11 +121,25 @@ export function SiteCard({ site, onDeleted }: SiteCardProps) {
         </div>
       )}
 
+      {/* Delete button in corner */}
+      {!showDeleteConfirm && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDeleteConfirm(true);
+          }}
+          className="absolute top-3 right-3 p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-red-400 hover:bg-red-950/80 opacity-0 group-hover:opacity-100 transition-all z-10"
+          title="Delete site"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Content */}
       <div className="p-6 space-y-4">
         {/* Title and status */}
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-white line-clamp-2">
+          <h3 className="text-lg font-semibold text-white line-clamp-2 pr-8">
             {site.name}
           </h3>
           <div className="flex items-center gap-2">

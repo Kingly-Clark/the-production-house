@@ -159,11 +159,12 @@ export async function GET(request: NextRequest) {
     // Get or create organization
     const organization = await getOrCreateOrganization(user, authUser.id, authUser.email || '');
 
-    // Fetch all sites for this organization (use admin client to bypass RLS)
+    // Fetch all non-deleted sites for this organization (use admin client to bypass RLS)
     const { data: sites, error } = await adminClient
       .from('sites')
       .select('*')
       .eq('organization_id', organization.id)
+      .neq('status', 'deleted')
       .order('created_at', { ascending: false });
 
     if (error) {

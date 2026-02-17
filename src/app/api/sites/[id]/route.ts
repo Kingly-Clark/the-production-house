@@ -113,10 +113,10 @@ export async function DELETE(
       );
     }
 
-    // Soft delete using admin client
+    // Hard delete - remove from database entirely
     const { error } = await adminClient
       .from('sites')
-      .update({ status: 'deleted' })
+      .delete()
       .eq('id', id);
 
     if (error) {
