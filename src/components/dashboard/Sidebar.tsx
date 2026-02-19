@@ -14,9 +14,11 @@ import {
   Link as LinkIcon,
   Share2,
   Zap,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ClientSelector } from './ClientSelector';
 
 interface SidebarProps {
   open: boolean;
@@ -31,6 +33,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const mainNav = [
     { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Sites', href: '/dashboard/sites', icon: Globe },
+    { label: 'Clients', href: '/dashboard/clients', icon: Building2 },
     { label: 'Billing', href: '/dashboard/billing', icon: Zap },
     { label: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
@@ -118,11 +121,19 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
         )}
       >
         {/* Logo */}
-        <div className="mb-8 pt-2">
+        <div className="mb-6 pt-2">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg" />
             <span className="font-bold text-white">Production</span>
           </Link>
+        </div>
+
+        {/* Client Selector */}
+        <div className="mb-6">
+          <p className="px-1 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Client
+          </p>
+          <ClientSelector />
         </div>
 
         {/* Main Navigation */}

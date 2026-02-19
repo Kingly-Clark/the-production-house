@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +8,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { TemplateSelector } from '@/components/dashboard/TemplateSelector';
 import { TemplateId } from '@/types/database';
+import { useClientStore } from '@/stores/clientStore';
 
 export default function NewSitePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { clients, selectedClientId, fetchClients } = useClientStore();
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
   
   const [formData, setFormData] = useState<{
     name: string;
@@ -25,6 +32,7 @@ export default function NewSitePage() {
     header_text: string;
     template_id: TemplateId;
     tone_of_voice: string;
+    client_id: string | null;
   }>({
     name: '',
     slug: '',
@@ -32,7 +40,14 @@ export default function NewSitePage() {
     header_text: '',
     template_id: 'classic',
     tone_of_voice: 'professional',
+    client_id: selectedClientId,
   });
+
+  useEffect(() => {
+    if (selectedClientId && !formData.client_id) {
+      setFormData(prev => ({ ...prev, client_id: selectedClientId }));
+    }
+  }, [selectedClientId, formData.client_id]);
 
   // Auto-generate slug from site name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +129,48 @@ export default function NewSitePage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Client Selection */}
+            {clients.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="client" className="text-white">Client</Label>
+                <Select
+                  value={formData.client_id || ''}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value || null }))}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-slate-400" />
+                      <SelectValue placeholder="Select a client" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        <div className="flex items-center gap-2">
+                          {client.logo_url ? (
+                            <img
+                              src={client.logo_url}
+                              alt=""
+                              className="w-4 h-4 rounded object-cover"
+                            />
+                          ) : (
+                            <div className="w-4 h-4 rounded bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white">
+                              {client.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          {client.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  Assign this site to a client for organization
+                </p>
+              </div>
+            )}
+
             {/* Site Name */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-white">Site Name *</Label>

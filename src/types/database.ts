@@ -20,6 +20,7 @@ export type AlertSeverity = 'info' | 'warning' | 'critical';
 export type JobType = 'fetch_sources' | 'rewrite_articles' | 'publish_articles' | 'post_social' | 'send_newsletter' | 'check_domains';
 export type JobStatus = 'running' | 'completed' | 'failed';
 export type NewsletterStatus = 'draft' | 'sending' | 'sent' | 'failed';
+export type ClientMemberRole = 'owner' | 'admin' | 'member';
 
 // =============================================================
 // Table Row Types
@@ -51,9 +52,29 @@ export interface User {
   updated_at: string;
 }
 
+export interface Client {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  logo_url: string | null;
+  website_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientMember {
+  id: string;
+  client_id: string;
+  user_id: string;
+  role: ClientMemberRole;
+  created_at: string;
+}
+
 export interface Site {
   id: string;
   organization_id: string;
+  client_id: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -385,6 +406,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
+          client_id: string | null;
           name: string;
           slug: string;
           description: string | null;
@@ -400,6 +422,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id: string;
+          client_id?: string | null;
           name: string;
           slug: string;
           description?: string | null;
@@ -415,6 +438,7 @@ export type Database = {
         Update: {
           id?: string;
           organization_id?: string;
+          client_id?: string | null;
           name?: string;
           slug?: string;
           description?: string | null;
@@ -426,6 +450,63 @@ export type Database = {
           cron_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      clients: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          description: string | null;
+          logo_url: string | null;
+          website_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          description?: string | null;
+          logo_url?: string | null;
+          website_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          description?: string | null;
+          logo_url?: string | null;
+          website_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      client_members: {
+        Row: {
+          id: string;
+          client_id: string;
+          user_id: string;
+          role: ClientMemberRole;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          user_id: string;
+          role?: ClientMemberRole;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          user_id?: string;
+          role?: ClientMemberRole;
+          created_at?: string;
         };
         Relationships: [];
       };

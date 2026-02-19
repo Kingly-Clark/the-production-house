@@ -7,12 +7,18 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Site } from '@/types/database';
-import { Loader2, ExternalLink, Trash2, Settings } from 'lucide-react';
+import { Loader2, ExternalLink, Trash2, Settings, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface SiteWithClient extends Site {
+  client_id?: string | null;
+  client_name?: string | null;
+}
+
 interface SiteCardProps {
-  site: Site;
+  site: SiteWithClient;
   onDeleted?: (siteId: string) => void;
+  showClientBadge?: boolean;
 }
 
 interface SiteStats {
@@ -26,7 +32,7 @@ interface SiteStats {
   subscriber_count: number;
 }
 
-export function SiteCard({ site, onDeleted }: SiteCardProps) {
+export function SiteCard({ site, onDeleted, showClientBadge = true }: SiteCardProps) {
   const router = useRouter();
   const [stats, setStats] = useState<SiteStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -142,7 +148,7 @@ export function SiteCard({ site, onDeleted }: SiteCardProps) {
           <h3 className="text-lg font-semibold text-white line-clamp-2 pr-8">
             {site.name}
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge
               className={
                 site.status === 'active'
@@ -157,6 +163,12 @@ export function SiteCard({ site, onDeleted }: SiteCardProps) {
             <Badge className="bg-blue-900 text-blue-200">
               {site.template_id}
             </Badge>
+            {showClientBadge && site.client_name && (
+              <Badge className="bg-purple-900 text-purple-200 flex items-center gap-1">
+                <Building2 className="w-3 h-3" />
+                {site.client_name}
+              </Badge>
+            )}
           </div>
         </div>
 

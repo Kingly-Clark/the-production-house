@@ -159,19 +159,36 @@ export async function GET(request: NextRequest) {
     // Get or create organization
     const organization = await getOrCreateOrganization(user, authUser.id, authUser.email || '');
 
-    // Fetch all non-deleted sites for this organization (use admin client to bypass RLS)
-    const { data: sites, error } = await adminClient
+    // Get optional clientId filter from query params
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('clientId');
+
+    // Build query for sites
+    let query = adminClient
       .from('sites')
-      .select('*')
+      .select('*, clients(id, name)')
       .eq('organization_id', organization.id)
-      .neq('status', 'deleted')
-      .order('created_at', { ascending: false });
+      .neq('status', 'deleted');
+
+    // Filter by clientId if provided
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data: sites, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       throw error;
     }
 
-    return NextResponse.json(sites || []);
+    // Flatten client info for easier frontend consumption
+    const sitesWithClient = (sites || []).map(site => ({
+      ...site,
+      client_name: site.clients?.name || null,
+      clients: undefined,
+    }));
+
+    return NextResponse.json(sitesWithClient);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error fetching sites:', error);
@@ -207,13 +224,70 @@ export async function POST(request: NextRequest) {
     const organization = await getOrCreateOrganization(user, authUser.id, authUser.email || '');
 
     const body = await request.json();
-    const { name, slug, description, header_text, template_id, tone_of_voice } = body;
+    const { name, slug, description, header_text, template_id, tone_of_voice, client_id } = body;
 
     if (!name || !slug) {
       return NextResponse.json(
         { error: 'Name and slug are required' },
         { status: 400 }
       );
+    }
+
+    // Determine which client to use
+    let finalClientId = client_id;
+    
+    if (!finalClientId) {
+      // Get or create a default client for this organization
+      const { data: existingClients } = await adminClient
+        .from('clients')
+        .select('id')
+        .eq('organization_id', organization.id)
+        .limit(1);
+
+      if (existingClients && existingClients.length > 0) {
+        finalClientId = existingClients[0].id;
+      } else {
+        // Create a default client
+        const { data: newClient } = await adminClient
+          .from('clients')
+          .insert({
+            organization_id: organization.id,
+            name: 'Default',
+            description: 'Default client',
+          })
+          .select()
+          .single();
+
+        if (newClient) {
+          finalClientId = newClient.id;
+          
+          // Add user as owner of this client
+          if (user) {
+            await adminClient
+              .from('client_members')
+              .insert({
+                client_id: newClient.id,
+                user_id: user.id,
+                role: 'owner',
+              });
+          }
+        }
+      }
+    } else {
+      // Verify the client belongs to this organization
+      const { data: clientCheck } = await adminClient
+        .from('clients')
+        .select('id')
+        .eq('id', client_id)
+        .eq('organization_id', organization.id)
+        .single();
+
+      if (!clientCheck) {
+        return NextResponse.json(
+          { error: 'Invalid client_id' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if slug already exists and generate unique one if needed
@@ -250,6 +324,7 @@ export async function POST(request: NextRequest) {
       .from('sites')
       .insert({
         organization_id: organization.id,
+        client_id: finalClientId || null,
         name,
         slug: finalSlug,
         description: description || null,

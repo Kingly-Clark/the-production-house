@@ -1,53 +1,61 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SiteCard } from '@/components/dashboard/SiteCard';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Building2 } from 'lucide-react';
 import { Site } from '@/types/database';
+import { useClientStore } from '@/stores/clientStore';
+
+interface SiteWithClient extends Site {
+  client_id: string | null;
+  client_name: string | null;
+}
 
 export default function SitesList() {
   const router = useRouter();
-  const [sites, setSites] = useState<Site[]>([]);
+  const [sites, setSites] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchSites = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const { selectedClientId, clients } = useClientStore();
+  const selectedClient = clients.find((c) => c.id === selectedClientId);
 
-        const res = await fetch('/api/sites');
-        const data = await res.json();
+  const fetchSites = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Check if the response contains an error
-        if (!res.ok) {
-          // If unauthorized, don't show error - user may need to log in
-          if (res.status === 401) {
-            setSites([]);
-            return;
-          }
-          throw new Error(data?.error || 'Failed to fetch sites');
+      const url = selectedClientId
+        ? `/api/sites?clientId=${selectedClientId}`
+        : '/api/sites';
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          setSites([]);
+          return;
         }
-
-        // Ensure data is an array (handle edge cases)
-        setSites(Array.isArray(data) ? data : []);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        console.error('Error fetching sites:', message);
-        // Don't show error for empty results, just show empty state
-        setError(null);
-        setSites([]);
-      } finally {
-        setLoading(false);
+        throw new Error(data?.error || 'Failed to fetch sites');
       }
-    };
 
+      setSites(Array.isArray(data) ? data : []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error fetching sites:', message);
+      setError(null);
+      setSites([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedClientId]);
+
+  useEffect(() => {
     fetchSites();
-  }, []);
+  }, [fetchSites]);
 
   const handleCreateSite = () => {
     router.push('/dashboard/sites/new');
@@ -75,7 +83,14 @@ export default function SitesList() {
         <div>
           <h1 className="text-3xl font-bold text-white">Sites</h1>
           <p className="text-slate-400 mt-2">
-            Manage all your content syndication sites
+            {selectedClient ? (
+              <span className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Showing sites for {selectedClient.name}
+              </span>
+            ) : (
+              'Manage all your content syndication sites'
+            )}
           </p>
         </div>
         <Button
@@ -106,6 +121,7 @@ export default function SitesList() {
             <SiteCard
               key={site.id}
               site={site}
+              showClientBadge={!selectedClientId}
               onDeleted={(deletedId) =>
                 setSites((prev) => prev.filter((s) => s.id !== deletedId))
               }
