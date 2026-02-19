@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     // Build query for sites
     let query = adminClient
       .from('sites')
-      .select('*, clients(id, name)')
+      .select('*')
       .eq('organization_id', organization.id)
       .neq('status', 'deleted');
 
@@ -181,11 +181,27 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    // Flatten client info for easier frontend consumption
+    // Get all client IDs to fetch their names
+    const clientIds = [...new Set((sites || []).map(s => s.client_id).filter((id): id is string => id !== null && id !== undefined))];
+    
+    // Fetch client names
+    let clientMap: Record<string, string> = {};
+    if (clientIds.length > 0) {
+      const { data: clients } = await adminClient
+        .from('clients')
+        .select('id, name')
+        .in('id', clientIds);
+      
+      clientMap = (clients || []).reduce((acc, c) => {
+        acc[c.id] = c.name;
+        return acc;
+      }, {} as Record<string, string>);
+    }
+
+    // Add client_name to each site
     const sitesWithClient = (sites || []).map(site => ({
       ...site,
-      client_name: site.clients?.name || null,
-      clients: undefined,
+      client_name: site.client_id ? clientMap[site.client_id] || null : null,
     }));
 
     return NextResponse.json(sitesWithClient);

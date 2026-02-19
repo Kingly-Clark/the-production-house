@@ -24,7 +24,7 @@ async function getUserWithOrganization(supabase: Awaited<ReturnType<typeof creat
     return { error: 'User has no organization', status: 400 };
   }
 
-  return { user, session };
+  return { user: { ...user, organization_id: user.organization_id }, session };
 }
 
 export async function GET(

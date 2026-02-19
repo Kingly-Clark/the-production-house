@@ -11,7 +11,6 @@ import { Loader2, ExternalLink, Trash2, Settings, Building2 } from 'lucide-react
 import { toast } from 'sonner';
 
 interface SiteWithClient extends Site {
-  client_id?: string | null;
   client_name?: string | null;
 }
 

@@ -26,7 +26,7 @@ async function getUserWithOrganization(supabase: Awaited<ReturnType<typeof creat
     return { error: 'User has no organization', status: 400 };
   }
 
-  return { user, session };
+  return { user: { ...user, organization_id: user.organization_id }, session };
 }
 
 export async function GET() {
@@ -43,7 +43,7 @@ export async function GET() {
 
     const { data: clients, error } = await adminClient
       .from('clients')
-      .select('*, sites:sites(count)')
+      .select('*')
       .eq('organization_id', user.organization_id)
       .order('created_at', { ascending: true });
 
@@ -51,11 +51,20 @@ export async function GET() {
       throw error;
     }
 
-    const clientsWithSiteCount = (clients || []).map(client => ({
-      ...client,
-      site_count: client.sites?.[0]?.count || 0,
-      sites: undefined,
-    }));
+    // Get site counts for each client
+    const clientsWithSiteCount = await Promise.all(
+      (clients || []).map(async (client) => {
+        const { count } = await adminClient
+          .from('sites')
+          .select('*', { count: 'exact', head: true })
+          .eq('client_id', client.id);
+        
+        return {
+          ...client,
+          site_count: count || 0,
+        };
+      })
+    );
 
     return NextResponse.json(clientsWithSiteCount);
   } catch (error) {
