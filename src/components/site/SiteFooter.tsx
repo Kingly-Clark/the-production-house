@@ -62,7 +62,7 @@ export default function SiteFooter({ site }: SiteFooterProps) {
                 rel="noopener noreferrer"
                 className="text-[var(--accent)] hover:underline"
               >
-                Production House
+                ContentMill
               </a>
             </p>
           </div>
@@ -73,12 +73,12 @@ export default function SiteFooter({ site }: SiteFooterProps) {
           <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-600 dark:text-gray-400">
             <p>© {currentYear} {site.name}. All rights reserved.</p>
             <a
-              href="https://productionhouse.io"
+              href="https://contentmill.co"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[var(--accent)] transition-colors mt-4 sm:mt-0"
             >
-              Powered by Production House
+              Powered by ContentMill
             </a>
           </div>
         </div>

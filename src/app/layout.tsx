@@ -9,16 +9,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Production House — Automated Content Syndication",
-  description: "Transform your content strategy with automated syndication, AI-powered rewrites, and multi-channel distribution",
-  keywords: ["content syndication", "content marketing", "automation", "AI"],
-  authors: [{ name: "Production House" }],
+  title: "ContentMill — Automated Content Sites That Build Your SEO Authority",
+  description: "Add your content sources, let our AI rewrite and optimise them, then publish automatically to beautiful sites with built-in newsletters, social posting, and custom domains.",
+  keywords: ["content syndication", "content marketing", "automation", "AI", "SEO", "newsletter"],
+  authors: [{ name: "ContentMill" }],
   openGraph: {
     type: "website",
     locale: "en_US",
     url: process.env.NEXT_PUBLIC_APP_URL,
-    title: "Production House",
-    description: "Automated Content Syndication Platform",
+    title: "ContentMill — Automated Content Sites",
+    description: "Automated content sites that build your SEO authority.",
+    siteName: "ContentMill",
   },
 };
 

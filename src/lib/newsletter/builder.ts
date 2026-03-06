@@ -243,8 +243,8 @@ function buildNewsletterHTML(input: BuildHTMLInput): string {
               <span style="color: #d1d5db;">•</span>
               <a href="${process.env.NEXT_PUBLIC_APP_URL}/api/public/site/${site.slug}/unsubscribe?token={unsubscribe_token}" class="footer-link">Unsubscribe</a>
             </div>
-            <p class="footer-text">Powered by <strong>Production House</strong> — Content Syndication Platform</p>
-            <p class="footer-text">© 2024 Production House. All rights reserved.</p>
+            <p class="footer-text">Powered by <strong>ContentMill</strong> — Automated Content Syndication</p>
+            <p class="footer-text">© 2026 ContentMill. All rights reserved.</p>
           </div>
         </div>
       </body>

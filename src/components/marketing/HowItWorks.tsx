@@ -34,7 +34,7 @@ export function HowItWorks() {
           <Badge className="mb-4 bg-slate-900 text-blue-400 hover:bg-slate-800">How It Works</Badge>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">Three Simple Steps</h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Set it up once and let Production House handle the heavy lifting
+            Set it up once and let ContentMill handle the heavy lifting
           </p>
         </div>
 

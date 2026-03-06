@@ -3,6 +3,7 @@
 // =============================================================
 
 import React from 'react';
+import Image from 'next/image';
 
 export default function AuthLayout({
   children,
@@ -21,9 +22,16 @@ export default function AuthLayout({
       <div className="relative z-10 w-full max-w-md">
         {/* Logo/Branding */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-            Production House
-          </h1>
+          <div className="flex justify-center mb-2">
+            <Image
+              src="/logo.png"
+              alt="ContentMill"
+              width={220}
+              height={60}
+              className="h-12 w-auto"
+              priority
+            />
+          </div>
           <p className="text-slate-400 text-sm mt-2">
             Automated Content Syndication Platform
           </p>
@@ -36,7 +44,7 @@ export default function AuthLayout({
 
         {/* Footer */}
         <p className="text-center text-slate-500 text-xs mt-8">
-          © 2024 Production House. All rights reserved.
+          © 2026 ContentMill. All rights reserved.
         </p>
       </div>
     </div>

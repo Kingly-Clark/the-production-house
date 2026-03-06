@@ -12,7 +12,7 @@ export function Testimonials() {
       company: 'Digital Insights Pro',
       role: 'Founder',
       quote:
-        'Production House helped me launch 12 content sites in just 3 weeks. The AI rewriting is incredible and my SEO rankings have doubled.',
+        'ContentMill helped me launch 12 content sites in just 3 weeks. The AI rewriting is incredible and my SEO rankings have doubled.',
       rating: 5,
       avatar: 'SC',
     },
@@ -21,7 +21,7 @@ export function Testimonials() {
       company: 'Tech Authority Media',
       role: 'Content Director',
       quote:
-        'The automation saved us 20+ hours per week. What used to take a team of 4 now runs on Production House. Amazing ROI.',
+        'The automation saved us 20+ hours per week. What used to take a team of 4 now runs on ContentMill. Amazing ROI.',
       rating: 5,
       avatar: 'MW',
     },

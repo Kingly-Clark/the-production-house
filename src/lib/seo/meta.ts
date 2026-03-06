@@ -11,7 +11,7 @@ export function generateSiteMeta(site: Site, settings: SiteSettings): Metadata {
     description,
     keywords: [site.name, 'content', 'articles'],
     authors: [{ name: site.name }],
-    creator: 'Production House',
+    creator: 'ContentMill',
     openGraph: {
       type: 'website',
       locale: 'en_US',
