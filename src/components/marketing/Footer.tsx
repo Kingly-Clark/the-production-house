@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Github, Twitter, Linkedin, Mail } from 'lucide-react';
 
 export function Footer() {
@@ -40,9 +41,14 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600" />
-              <span className="font-bold text-white text-lg">ContentMill</span>
+            <div className="mb-4">
+              <Image
+                src="/logo.png"
+                alt="ContentMill"
+                width={160}
+                height={44}
+                className="h-9 w-auto"
+              />
             </div>
             <p className="text-slate-400 text-sm">
               Automated content syndication for creators and agencies building their SEO authority.
