@@ -4,6 +4,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function AuthLayout({
   children,
@@ -23,14 +24,16 @@ export default function AuthLayout({
         {/* Logo/Branding */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-2">
-            <Image
-              src="/logo.png"
-              alt="ContentMill"
-              width={220}
-              height={60}
-              className="h-12 w-auto"
-              priority
-            />
+            <Link href="/">
+              <Image
+                src="/logo.png"
+                alt="ContentMill"
+                width={220}
+                height={60}
+                className="h-12 w-auto"
+                priority
+              />
+            </Link>
           </div>
           <p className="text-slate-400 text-sm mt-2">
             Automated Content Syndication Platform
