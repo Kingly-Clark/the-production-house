@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export default function SignupPage() {
   return (
@@ -26,8 +27,35 @@ function SignupForm() {
   const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherStatus, setVoucherStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [voucherMessage, setVoucherMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const voucherTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Live voucher validation with debounce
+  useEffect(() => {
+    if (!voucherCode.trim()) {
+      setVoucherStatus('idle');
+      setVoucherMessage('');
+      return;
+    }
+    setVoucherStatus('checking');
+    if (voucherTimer.current) clearTimeout(voucherTimer.current);
+    voucherTimer.current = setTimeout(async () => {
+      const res = await fetch(`/api/vouchers/validate?code=${encodeURIComponent(voucherCode)}`);
+      const data = await res.json();
+      if (data.valid) {
+        setVoucherStatus('valid');
+        setVoucherMessage(data.description || `${data.max_sites} sites free`);
+      } else {
+        setVoucherStatus('invalid');
+        setVoucherMessage(data.error || 'Invalid code');
+      }
+    }, 500);
+    return () => { if (voucherTimer.current) clearTimeout(voucherTimer.current); };
+  }, [voucherCode]);
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     const supabase = createClient();
@@ -41,6 +69,7 @@ function SignupForm() {
         options: {
           data: {
             full_name: fullName,
+            ...(voucherStatus === 'valid' && voucherCode ? { voucher_code: voucherCode.toUpperCase().trim() } : {}),
           },
           emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback?redirect=/login?verified=true`,
         },
@@ -177,6 +206,37 @@ function SignupForm() {
           <p className="text-slate-500 text-xs">
             At least 6 characters
           </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="voucherCode" className="text-slate-300">
+            Voucher code <span className="text-slate-500 font-normal">(optional)</span>
+          </Label>
+          <div className="relative">
+            <Input
+              id="voucherCode"
+              type="text"
+              placeholder="e.g. FOUNDER"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+              disabled={isLoading}
+              className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 uppercase pr-10"
+            />
+            {voucherStatus === 'valid' && (
+              <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-400" />
+            )}
+            {voucherStatus === 'invalid' && (
+              <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-400" />
+            )}
+          </div>
+          {voucherStatus === 'valid' && (
+            <p className="text-green-400 text-xs flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> {voucherMessage}
+            </p>
+          )}
+          {voucherStatus === 'invalid' && (
+            <p className="text-red-400 text-xs">{voucherMessage}</p>
+          )}
         </div>
 
         <Button

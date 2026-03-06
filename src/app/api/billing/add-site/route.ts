@@ -70,29 +70,43 @@ export async function POST(request: NextRequest) {
 
     // Check if we need to increment subscription
     if (currentSiteCount >= organization.max_sites) {
-      try {
-        // Increment subscription quantity
-        const newQuantity = currentSiteCount + 1;
-        await updateQuantity(organization.id, newQuantity);
-
-        // Update organization max_sites
+      if (organization.plan_status === 'founder') {
+        // Founder plan: just expand max_sites without touching Stripe
         const { error: updateOrgError } = await admin
           .from('organizations')
           .update({
-            max_sites: newQuantity,
+            max_sites: currentSiteCount + 1,
             updated_at: new Date().toISOString(),
           })
           .eq('id', organization.id);
 
         if (updateOrgError) {
-          console.error('Failed to update organization max_sites:', updateOrgError);
+          console.error('Failed to expand founder org max_sites:', updateOrgError);
         }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        return NextResponse.json(
-          { error: `Failed to increment subscription: ${message}` },
-          { status: 400 }
-        );
+      } else {
+        try {
+          // Paid plan: increment Stripe subscription
+          const newQuantity = currentSiteCount + 1;
+          await updateQuantity(organization.id, newQuantity);
+
+          const { error: updateOrgError } = await admin
+            .from('organizations')
+            .update({
+              max_sites: newQuantity,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', organization.id);
+
+          if (updateOrgError) {
+            console.error('Failed to update organization max_sites:', updateOrgError);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          return NextResponse.json(
+            { error: `Failed to increment subscription: ${message}` },
+            { status: 400 }
+          );
+        }
       }
     }
 

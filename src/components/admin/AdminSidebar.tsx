@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Settings,
   LogOut,
+  Ticket,
 } from 'lucide-react';
 import type { User } from '@/types/database';
 
@@ -32,6 +33,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     { href: '/admin/articles', icon: FileText, label: 'Articles' },
     { href: '/admin/jobs', icon: Zap, label: 'Jobs' },
     { href: '/admin/alerts', icon: AlertCircle, label: 'Alerts' },
+    { href: '/admin/vouchers', icon: Ticket, label: 'Vouchers' },
     { href: '/admin/system', icon: Settings, label: 'System' },
   ];
 
