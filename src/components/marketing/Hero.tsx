@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 
 const ROTATING_WORDS = [
@@ -120,14 +120,6 @@ function HeroContent() {
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </Link>
-        <Button
-          size="lg"
-          variant="outline"
-          className="hidden sm:flex bg-slate-900/50 border border-slate-600 hover:border-slate-400 text-slate-200 hover:text-white font-medium py-2.5 sm:py-3 px-6 sm:px-8 rounded-full transition duration-300 items-center justify-center backdrop-blur-sm"
-        >
-          <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2 fill-current" />
-          Watch Demo
-        </Button>
       </div>
 
       {/* Trust indicators */}

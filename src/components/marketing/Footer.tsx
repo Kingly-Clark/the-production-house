@@ -30,7 +30,7 @@ export function Footer() {
     { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
     { icon: Github, href: 'https://github.com', label: 'GitHub' },
     { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-    { icon: Mail, href: 'mailto:hello@productionhouse.com', label: 'Email' },
+    { icon: Mail, href: 'mailto:hello@contentmill.co', label: 'Email' },
   ];
 
   return (
@@ -42,7 +42,7 @@ export function Footer() {
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600" />
-              <span className="font-bold text-white text-lg">Production House</span>
+              <span className="font-bold text-white text-lg">ContentMill</span>
             </div>
             <p className="text-slate-400 text-sm">
               Automated content syndication for creators and agencies building their SEO authority.
@@ -75,7 +75,7 @@ export function Footer() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Copyright */}
             <p className="text-slate-400 text-sm">
-              © {currentYear} Production House. All rights reserved.
+              © {currentYear} ContentMill. All rights reserved.
             </p>
 
             {/* Social */}

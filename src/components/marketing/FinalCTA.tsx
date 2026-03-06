@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,14 +9,12 @@ import { ArrowRight, Mail } from 'lucide-react';
 
 export function FinalCTA() {
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
-      setSubmitted(true);
-      setEmail('');
-      setTimeout(() => setSubmitted(false), 3000);
+      router.push(`/signup?email=${encodeURIComponent(email)}`);
     }
   };
 
@@ -60,13 +59,6 @@ export function FinalCTA() {
                 </Button>
               </div>
             </form>
-
-            {/* Success message */}
-            {submitted && (
-              <div className="text-center text-green-400 text-sm mb-4 animate-pulse">
-                Check your email for next steps!
-              </div>
-            )}
 
             {/* Trust indicators */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-slate-400 pt-8 border-t border-slate-700">

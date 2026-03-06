@@ -1,11 +1,7 @@
-// Production House — Signup Page
-// User registration with email/password and OAuth
-// =============================================================
-
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -15,8 +11,19 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="text-white text-center py-8">Loading...</div>}>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const prefillEmail = searchParams.get('email') || '';
+
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +35,6 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      // Sign up with email and password
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -36,7 +42,7 @@ export default function SignupPage() {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/callback?redirect=/dashboard`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback?redirect=/login?verified=true`,
         },
       });
 
@@ -63,7 +69,7 @@ export default function SignupPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/callback?redirect=/dashboard`,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback?redirect=/dashboard`,
         },
       });
 
@@ -91,7 +97,7 @@ export default function SignupPage() {
 
         <div className="bg-slate-700/30 border border-slate-600 rounded-lg p-4">
           <p className="text-slate-300 text-sm">
-            Click the link in your email to confirm your account and get started with Production House.
+            Click the link in your email to confirm your account. Once confirmed you&apos;ll be taken to the login page to sign in.
           </p>
         </div>
 
@@ -100,7 +106,6 @@ export default function SignupPage() {
           <button
             onClick={() => {
               setConfirmationSent(false);
-              setEmail('');
               setPassword('');
               setFullName('');
             }}
@@ -118,11 +123,10 @@ export default function SignupPage() {
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Create your account</h2>
         <p className="text-slate-400 text-sm">
-          Join Production House and start syndicating content
+          Start building your content empire with ContentMill
         </p>
       </div>
 
-      {/* Email/Password Form */}
       <form onSubmit={handleSignup} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="fullName" className="text-slate-300">
@@ -186,7 +190,6 @@ export default function SignupPage() {
 
       <Separator className="bg-slate-700/50" />
 
-      {/* OAuth */}
       <Button
         onClick={handleGoogleSignup}
         disabled={isLoading}
@@ -214,7 +217,6 @@ export default function SignupPage() {
         Sign up with Google
       </Button>
 
-      {/* Links */}
       <div className="text-center text-sm text-slate-400">
         Already have an account?{' '}
         <Link href="/login" className="text-blue-400 hover:text-blue-300">

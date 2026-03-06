@@ -27,6 +27,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/dashboard';
+  const isVerified = searchParams.get('verified') === 'true';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -116,6 +117,16 @@ function LoginForm() {
 
   return (
     <div className="space-y-6">
+      {isVerified && (
+        <div className="flex items-start gap-3 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
+          <span className="text-green-400 text-lg leading-none mt-0.5">✓</span>
+          <div>
+            <p className="text-green-400 font-medium text-sm">Email verified!</p>
+            <p className="text-green-300/80 text-xs mt-0.5">Your account is confirmed. Sign in below to get started.</p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Welcome back</h2>
         <p className="text-slate-400 text-sm">

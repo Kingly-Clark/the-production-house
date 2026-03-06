@@ -33,7 +33,7 @@ async function getSenderEmail(siteId: string): Promise<string> {
     return `newsletter@${domain.domain}`;
   }
 
-  return 'newsletter@productionhouse.ai';
+  return 'newsletter@contentmill.co';
 }
 
 /**

@@ -168,7 +168,7 @@ export async function sendConfirmationEmail(
             <p>If you didn't sign up for this newsletter, you can safely ignore this email.</p>
           </div>
           <div class="footer">
-            <p class="footer-text">© 2024 Production House. All rights reserved.</p>
+            <p class="footer-text">© 2026 ContentMill. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -177,7 +177,7 @@ export async function sendConfirmationEmail(
 
   return sendEmail({
     to: input.to,
-    from: `noreply@productionhouse.ai`,
+    from: `noreply@contentmill.co`,
     subject: `Confirm your subscription to ${input.siteName}`,
     html,
   });
@@ -218,7 +218,7 @@ export async function sendUnsubscribeConfirmation(
             <p>If you change your mind, you can always subscribe again.</p>
           </div>
           <div class="footer">
-            <p class="footer-text">© 2024 Production House. All rights reserved.</p>
+            <p class="footer-text">© 2026 ContentMill. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -227,7 +227,7 @@ export async function sendUnsubscribeConfirmation(
 
   return sendEmail({
     to: input.to,
-    from: `noreply@productionhouse.ai`,
+    from: `noreply@contentmill.co`,
     subject: `You've been unsubscribed from ${input.siteName}`,
     html,
   });
