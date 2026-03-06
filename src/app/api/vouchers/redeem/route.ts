@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         status: 'active',
         quantity: 0,
         stripe_subscription_id: null,
-        stripe_customer_id: null,
+        stripe_price_id: null,
         cancel_at_period_end: false,
         current_period_start: new Date().toISOString(),
         current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),

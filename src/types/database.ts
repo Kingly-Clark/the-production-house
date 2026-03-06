@@ -3,7 +3,7 @@
 // Mirrors the Supabase schema exactly
 // =============================================================
 
-export type OrganizationStatus = 'active' | 'paused' | 'cancelled' | 'past_due';
+export type OrganizationStatus = 'active' | 'paused' | 'cancelled' | 'past_due' | 'founder';
 export type SiteStatus = 'active' | 'paused' | 'building' | 'deleted';
 export type ArticleStatus = 'raw' | 'rewriting' | 'pending' | 'published' | 'unpublished' | 'failed' | 'duplicate' | 'filtered' | 'deleted';
 export type TemplateId = 'classic' | 'magazine' | 'minimal' | 'bold' | 'tech';
@@ -269,6 +269,28 @@ export interface NewsletterLog {
   resend_batch_id: string | null;
   status: NewsletterStatus;
   created_at: string;
+}
+
+export interface VoucherCode {
+  id: string;
+  code: string;
+  description: string | null;
+  plan_status: string;
+  max_sites: number;
+  max_uses: number | null;
+  uses_count: number;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VoucherRedemption {
+  id: string;
+  voucher_code_id: string;
+  organization_id: string;
+  user_id: string;
+  redeemed_at: string;
 }
 
 export interface JobLog {
@@ -1098,6 +1120,72 @@ export type Database = {
           started_at?: string;
           completed_at?: string | null;
           duration_ms?: number | null;
+        };
+        Relationships: [];
+      };
+      voucher_codes: {
+        Row: {
+          id: string;
+          code: string;
+          description: string | null;
+          plan_status: string;
+          max_sites: number;
+          max_uses: number | null;
+          uses_count: number;
+          is_active: boolean;
+          expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          description?: string | null;
+          plan_status?: string;
+          max_sites?: number;
+          max_uses?: number | null;
+          uses_count?: number;
+          is_active?: boolean;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          description?: string | null;
+          plan_status?: string;
+          max_sites?: number;
+          max_uses?: number | null;
+          uses_count?: number;
+          is_active?: boolean;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      voucher_redemptions: {
+        Row: {
+          id: string;
+          voucher_code_id: string;
+          organization_id: string;
+          user_id: string;
+          redeemed_at: string;
+        };
+        Insert: {
+          id?: string;
+          voucher_code_id: string;
+          organization_id: string;
+          user_id: string;
+          redeemed_at?: string;
+        };
+        Update: {
+          id?: string;
+          voucher_code_id?: string;
+          organization_id?: string;
+          user_id?: string;
+          redeemed_at?: string;
         };
         Relationships: [];
       };
